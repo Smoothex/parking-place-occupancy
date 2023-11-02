@@ -1,0 +1,36 @@
+version: '3'
+services:
+  # PostgreSQL with PostGIS
+  postgres:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+
+  # pgAdmin
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  # Java Program
+  java-program:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    environment:
+    - POSTGRES_DB=jdbc:postgresql://postgres:5432/mydb
+    - POSTGRES_USER=myuser
+    - POSTGRES_PASSWORD=mypassword
