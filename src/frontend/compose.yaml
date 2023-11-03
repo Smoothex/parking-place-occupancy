@@ -1,9 +1,9 @@
 version: "3.0"
 services:
   angular-app:
-    build: ./frontend
+    build: .
     ports:
-      - 4200:4200
+      - "4200:4200"
     volumes:
       - ../frontend:/project
       - /project/node_modules

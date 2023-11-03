@@ -37,6 +37,14 @@ services:
     - POSTGRES_DB=jdbc:postgresql://postgres:5432/parking_spots_db
     - POSTGRES_USER=parkuser
 
+  angular-app:
+    build: ./frontend
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/project
+      - /project/node_modules
+
 volumes:
   db:
     driver: local
