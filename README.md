@@ -14,3 +14,10 @@ The reason for replacing this configuration file is to configure PostgreSQL to a
 the `pg_hba.conf` file in _db_ differs from the original only by the last line: `host  all  all  0.0.0.0/0  md5`. Replacing 
 the whole file is a bit clumsy, but I couldn't edit the file directly, since it requires the container to be restarted in order 
 for the changes to be applied - and I couldn't find an easy way to restart the container once after it's been started.
+
+
+## running frontend
+
+go to frontend folder where Dockerfile is located for frontend
+execute "docker build -t frontend ."
+then run the container "docker run -d -p 4200:4200 frontend "
