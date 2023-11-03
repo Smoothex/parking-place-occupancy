@@ -34,9 +34,8 @@ services:
     depends_on:
       - postgres
     environment:
-    - POSTGRES_DB=jdbc:postgresql://postgres:5432/mydb
-    - POSTGRES_USER=myuser
-    - POSTGRES_PASSWORD=mypassword
+    - POSTGRES_DB=jdbc:postgresql://postgres:5432/parking_spots_db
+    - POSTGRES_USER=parkuser
 
 volumes:
   db:
