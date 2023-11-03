@@ -5,12 +5,15 @@ services:
     build:
       context: ./db
       dockerfile: Dockerfile
+    restart: always
     environment:
-      POSTGRES_DB: mydb
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: parking_spots_db
+      POSTGRES_USER: parkuser
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"
+      - "32768:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
 
   # pgAdmin
   pgadmin:
@@ -34,3 +37,7 @@ services:
     - POSTGRES_DB=jdbc:postgresql://postgres:5432/mydb
     - POSTGRES_USER=myuser
     - POSTGRES_PASSWORD=mypassword
+
+volumes:
+  db:
+    driver: local
