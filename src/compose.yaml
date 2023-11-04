@@ -24,7 +24,7 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - postgres
+      - database
 
   # Spring Boot App
   backend:
@@ -32,7 +32,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      - postgres
+      - database
     environment:
     - POSTGRES_DB=jdbc:postgresql://postgres:5432/parking_spots_db
     - POSTGRES_USER=parkuser
