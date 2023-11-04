@@ -11,11 +11,15 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.sql.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @SpringBootApplication
 public class DatabaseConnection {
 
     private static final String GEOJSON_FILE = "/tmp/data.geojson";
     private static Connection connection;
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseConnection.class);
 
     public static void main(String[] args) {
         SpringApplication.run(DatabaseConnection.class, args);
@@ -26,7 +30,7 @@ public class DatabaseConnection {
             printDatabaseContents();
             closeDatabaseConnection();
         } catch (IOException | SQLException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("An exception occurred: {}", e.getMessage(), e);
         }
     }
 
@@ -48,12 +52,16 @@ public class DatabaseConnection {
         Properties connectionProp = new Properties();
         connectionProp.setProperty("user", dbUser);
 
+        logger.debug("Attempting to establish a database connection...");
         if (isExecutedInDocker) {
+            logger.debug("Application running in Docker. Waiting for the database service to start...");
             Thread.sleep(10000); // sleep for 10s so that PostgreSQL can initialize properly
         }
         connection = DriverManager.getConnection(url, connectionProp);
         if (connection != null) {
-            System.out.println("Connected to the database!");
+            logger.info("Connected to database {}", dbName);
+        } else {
+            logger.error("Failed to connect to database {}", dbName);
         }
     }
 
@@ -64,6 +72,7 @@ public class DatabaseConnection {
      * @throws SQLException if there is an error executing the SQL commands to create the table or index.
      */
     private static void initializeDatabase() throws SQLException {
+        logger.debug("Initializing the database...");
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(
                 "CREATE TABLE IF NOT EXISTS parking_spaces (" +
@@ -75,7 +84,10 @@ public class DatabaseConnection {
                 "CREATE INDEX IF NOT EXISTS parking_spaces_geolocation_idx " +
                 "ON parking_spaces USING GIST (geolocation);"
             );
-            System.out.println("parking_spaces table created.");
+            logger.info("Database initialized with table parking_spaces and associated index.");
+        } catch (SQLException e) {
+            logger.error("Error initializing the database: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -87,6 +99,7 @@ public class DatabaseConnection {
      * @throws SQLException if there is an error executing the insert statement.
      */
     private static void loadGeoJsonDataIntoDatabase() throws IOException, SQLException {
+        logger.debug("Loading GeoJSON data into the database...");
         String geoJsonData = new String(Files.readAllBytes(Paths.get(GEOJSON_FILE)));
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(geoJsonData);
@@ -98,25 +111,35 @@ public class DatabaseConnection {
                 pstmt.setString(1, geometry);
                 pstmt.executeUpdate();
             }
-            System.out.println("GeoJSON data loaded into the database.");
+            logger.info("GeoJSON data successfully loaded into the database.");
+        } catch (SQLException e) {
+            logger.error("Error loading GeoJSON data into the database: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
     private static void printDatabaseContents() throws SQLException {
+        logger.debug("Printing database contents...");
         try (Statement stmt = connection.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT id, ST_AsGeoJSON(geolocation) AS geolocation FROM parking_spaces");
             while (rs.next()) {
                 int id = rs.getInt("id");
-                String geolocation = rs.getString("geolocation"); // This will be a GeoJSON string
-                System.out.println("ID: " + id + ", Geolocation: " + geolocation);
+                String geolocation = rs.getString("geolocation");
+                logger.info("ID: {}, Geolocation: {}", id, geolocation);
             }
+        } catch (SQLException e) {
+            logger.error("Error printing database contents: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
     private static void closeDatabaseConnection() throws SQLException {
+        logger.debug("Closing database connection...");
         if (connection != null && !connection.isClosed()) {
             connection.close();
-            System.out.println("Disconnected from the database.");
+            logger.info("Database connection closed.");
+        } else {
+            logger.error("Database connection was already closed or it was never opened.");
         }
     }
 }
