@@ -1,7 +1,7 @@
 version: '3'
 services:
   # PostgreSQL with PostGIS
-  database:
+  postgres:
     build:
       context: ./db
       dockerfile: Dockerfile
@@ -24,7 +24,7 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - database
+      - postgres
 
   # Spring Boot App
   backend:
@@ -32,7 +32,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      - database
+      - postgres
     environment:
     - POSTGRES_DB=jdbc:postgresql://postgres:5432/parking_spots_db
     - POSTGRES_USER=parkuser

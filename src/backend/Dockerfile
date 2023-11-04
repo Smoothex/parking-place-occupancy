@@ -7,5 +7,6 @@ RUN gradle clean build
 # Run stage
 FROM openjdk:22-ea-17-slim
 COPY --from=BUILD /app/build/libs/*.jar app.jar
+COPY ./source-data /tmp
 EXPOSE 8080
 CMD ["java", "-jar", "/app.jar"]
