@@ -1,7 +1,6 @@
 package org.gradle.backendpostgresqlapi;
 
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -43,16 +42,16 @@ public class DatabaseConnection {
     }
 
     /**
-     * Creates a CommandLineRunner bean that is run after all the Spring Beans are created and registered.
+     * Creates a ApplicationRunner bean that is run after all the Spring Beans are created and registered.
      * It retrieves the GeospatialService bean from the application context, fetches all parking spaces,
      * and then prints them out.
      *
      * @param geospatialService the service bean that provides geospatial operations
-     * @return a CommandLineRunner bean that executes the logic defined in the run method
+     * @return a ApplicationRunner bean that executes the logic defined in the run method
      */
     @Bean
     @Order(2)
-    public CommandLineRunner commandLineRunner(GeospatialService geospatialService) {
+    public ApplicationRunner printParkingSpaces(GeospatialService geospatialService) {
         return args -> {
             List<ParkingSpaceDTO> parkingSpaces = geospatialService.getParkingSpaces();
             parkingSpaces.forEach(space -> System.out.println(space));
