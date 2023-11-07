@@ -23,7 +23,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Service
 public class GeospatialService {
 
@@ -36,7 +35,6 @@ public class GeospatialService {
     private static final String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS parking_spaces_geolocation_idx ON parking_spaces USING GIST (geolocation);";
     private static final String INSERT_GEOJSON_SQL = "INSERT INTO parking_spaces (geolocation) VALUES (ST_GeomFromGeoJSON(?))";
     private static final String SELECT_PARKING_SPACES_SQL = "SELECT id, ST_AsGeoJSON(geolocation)::json AS geolocation FROM parking_spaces";
-
 
     public GeospatialService(JdbcTemplate jdbcTemplate, ResourceLoader resourceLoader) {
         this.jdbcTemplate = jdbcTemplate;
@@ -57,9 +55,10 @@ public class GeospatialService {
     }
 
     /**
-     * Loads data from a GeoJSON file into the database.
-     * The method reads a GeoJSON file from the filesystem, parses it, and then inserts the data
-     * into the `parking_spaces` table using a batch update operation.
+     * Loads data from a GeoJSON file into the database. The method
+     * reads a GeoJSON file from the filesystem, parses it, and then
+     * inserts the data into the `parking_spaces` table
+     * using a batch update operation.
      *
      * @throws IOException If there is a problem reading the GeoJSON file.
      */
@@ -67,9 +66,10 @@ public class GeospatialService {
     public void loadGeoJsonDataIntoDatabase() throws IOException {
         logger.debug("Loading GeoJSON data into the database...");
 
-        // Get the resource as an InputStream (and not as a File, since it is embedded in the .jar under /src/main/resources and it's not on the container's file system)
+        // Get the resource as an InputStream (and not as a File, since it is embedded
+        // in the .jar under /src/main/resources and it's not on the container's file system)
         InputStream inputStream = resourceLoader.getResource(GEOJSON_FILE).getInputStream();
-        
+
         // Read from the InputStream using BufferedReader
         String geoJsonData;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
@@ -90,34 +90,36 @@ public class GeospatialService {
 
         // Execute the batch update as before
         jdbcTemplate.batchUpdate(
-            INSERT_GEOJSON_SQL,
-            featuresList,
-            featuresList.size(),
-            (PreparedStatement ps, JsonNode feature) -> {
-                // Convert the JsonNode to a String representation of the geometry
-                String geometryJson = feature.path("geometry").toString();
-                // Set the string in the prepared statement
-                ps.setString(1, geometryJson);
-            }
-        );
+                INSERT_GEOJSON_SQL,
+                featuresList,
+                featuresList.size(),
+                (PreparedStatement ps, JsonNode feature) -> {
+                    // Convert the JsonNode to a String representation of the geometry
+                    String geometryJson = feature.path("geometry").toString();
+                    // Set the string in the prepared statement
+                    ps.setString(1, geometryJson);
+                });
 
         logger.info("GeoJSON data successfully loaded into the database.");
     }
 
-
     /**
-     * Fetches all parking space records from the database and maps them to a list of ParkingSpaceDTO objects.
-     * This method executes a SQL query to retrieve parking space data, which is then transformed to DTOs.
+     * Fetches all parking space records from the database and maps them to a list
+     * of ParkingSpaceDTO objects.
+     * This method executes a SQL query to retrieve parking space data, which is
+     * then transformed to DTOs.
      *
-     * @return A List of ParkingSpaceDTO objects representing the parking spaces in the database.
-     * @throws SQLException If there is a problem accessing the database or mapping the result set to DTOs.
+     * @return A List of ParkingSpaceDTO objects representing the parking spaces in
+     *         the database.
+     * @throws SQLException If there is a problem accessing the database or mapping
+     *                      the result set to DTOs.
      */
-    public List<ParkingSpaceDTO> getParkingSpaces() {
+    public List<ParkingSpaceDTO> getParkingSpaces() throws SQLException {
         return jdbcTemplate.query(SELECT_PARKING_SPACES_SQL, (rs, rowNum) -> {
             int parkingSpaceId = rs.getInt("id");
             String parkingSpaceGeojson = rs.getString("geolocation");
             ParkingSpaceDTO parkingSpace = new ParkingSpaceDTO(parkingSpaceId, parkingSpaceGeojson);
-            
+
             return parkingSpace;
         });
     }
