@@ -118,9 +118,8 @@ public class GeospatialService {
         return jdbcTemplate.query(SELECT_PARKING_SPACES_SQL, (rs, rowNum) -> {
             int parkingSpaceId = rs.getInt("id");
             String parkingSpaceGeojson = rs.getString("geolocation");
-            ParkingSpaceDTO parkingSpace = new ParkingSpaceDTO(parkingSpaceId, parkingSpaceGeojson);
 
-            return parkingSpace;
+            return new ParkingSpaceDTO(parkingSpaceId, parkingSpaceGeojson);
         });
     }
 }

@@ -28,7 +28,6 @@ public class DatabaseConnection {
      * at the start-up of the application. It initializes the database schema and loads GeoJSON data
      * into the database.
      *
-     * @param jdbcTemplate the JdbcTemplate bean used for database operations
      * @param geospatialService the service bean that provides geospatial operations
      * @return an ApplicationRunner bean that performs database initialization and data loading
      */
@@ -54,7 +53,7 @@ public class DatabaseConnection {
     public ApplicationRunner printParkingSpaces(GeospatialService geospatialService) {
         return args -> {
             List<ParkingSpaceDTO> parkingSpaces = geospatialService.getParkingSpaces();
-            parkingSpaces.forEach(space -> System.out.println(space));
+            parkingSpaces.forEach(System.out::println);
         };
     }
 }
