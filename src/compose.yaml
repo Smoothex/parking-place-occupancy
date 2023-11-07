@@ -33,9 +33,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - postgres
-    environment:
-    - POSTGRES_DB=jdbc:postgresql://postgres:5432/parking_spots_db
-    - POSTGRES_USER=parkuser
 
   # Angular App
   frontend:
