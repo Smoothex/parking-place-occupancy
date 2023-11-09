@@ -1,8 +1,7 @@
 package org.gradle.backendpostgresqlapi.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.dto.ParkingSpaceDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -19,14 +18,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 public class GeospatialService {
 
-    private static final Logger logger = LoggerFactory.getLogger(GeospatialService.class);
     private final JdbcTemplate jdbcTemplate;
     private final ResourceLoader resourceLoader;
 
@@ -48,10 +46,10 @@ public class GeospatialService {
      */
     @Transactional
     public void initializeDatabase() {
-        logger.debug("Initializing the database...");
+        log.debug("Initializing the database...");
         jdbcTemplate.execute(CREATE_TABLE_SQL);
         jdbcTemplate.execute(CREATE_INDEX_SQL);
-        logger.info("Database initialized with table parking_spaces and index parking_spaces_geolocation_idx.");
+        log.info("Database initialized with table parking_spaces and index parking_spaces_geolocation_idx.");
     }
 
     /**
@@ -64,7 +62,7 @@ public class GeospatialService {
      */
     @Transactional
     public void loadGeoJsonDataIntoDatabase() throws IOException {
-        logger.debug("Loading GeoJSON data into the database...");
+        log.debug("Loading GeoJSON data into the database...");
 
         // Get the resource as an InputStream (and not as a File, since it is embedded
         // in the .jar under /src/main/resources and it's not on the container's file system)
@@ -75,7 +73,7 @@ public class GeospatialService {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             geoJsonData = reader.lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
-            logger.error("Error reading GeoJSON data", e);
+            log.error("Error reading GeoJSON data", e);
             throw e;
         }
 
@@ -100,7 +98,7 @@ public class GeospatialService {
                     ps.setString(1, geometryJson);
                 });
 
-        logger.info("GeoJSON data successfully loaded into the database.");
+        log.info("GeoJSON data successfully loaded into the database.");
     }
 
     /**
@@ -111,10 +109,8 @@ public class GeospatialService {
      *
      * @return A List of ParkingSpaceDTO objects representing the parking spaces in
      *         the database.
-     * @throws SQLException If there is a problem accessing the database or mapping
-     *                      the result set to DTOs.
      */
-    public List<ParkingSpaceDTO> getParkingSpaces() throws SQLException {
+    public List<ParkingSpaceDTO> getParkingSpaces() {
         return jdbcTemplate.query(SELECT_PARKING_SPACES_SQL, (rs, rowNum) -> {
             int parkingSpaceId = rs.getInt("id");
             String parkingSpaceGeojson = rs.getString("geolocation");
