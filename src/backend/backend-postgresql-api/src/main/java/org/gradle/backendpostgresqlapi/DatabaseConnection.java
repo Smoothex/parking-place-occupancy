@@ -1,6 +1,8 @@
 package org.gradle.backendpostgresqlapi;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
+import org.gradle.backendpostgresqlapi.service.GeospatialService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,9 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
 
 import java.util.List;
-
-import org.gradle.backendpostgresqlapi.dto.ParkingSpaceDTO;
-import org.gradle.backendpostgresqlapi.service.GeospatialService;
 
 @Slf4j
 @SpringBootApplication
@@ -49,7 +48,7 @@ public class DatabaseConnection {
     @Order(2)
     public ApplicationRunner printParkingSpaces(GeospatialService geospatialService) {
         return args -> {
-            List<ParkingSpaceDTO> parkingSpaces = geospatialService.getParkingSpaces();
+            List<ParkingSpace> parkingSpaces = geospatialService.getParkingSpaces();
             parkingSpaces.forEach(System.out::println);
         };
     }
