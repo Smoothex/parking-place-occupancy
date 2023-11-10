@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 services:
   # PostgreSQL with PostGIS
   postgres:
@@ -10,10 +10,17 @@ services:
       POSTGRES_DB: parking_spots_db
       POSTGRES_USER: parkuser
       POSTGRES_HOST_AUTH_METHOD: trust
+      PGUSER: postgres
     ports:
       - "32768:5432"
     volumes:
       - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+      start_period: 10s
 
   # pgAdmin
   pgadmin:
@@ -32,13 +39,17 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   # Angular App
   frontend:
     build: ./frontend
     ports:
       - "4200:4200"
+    depends_on:
+      backend:
+        condition: service_started
     volumes:
       - ./frontend:/project
       - /project/node_modules
