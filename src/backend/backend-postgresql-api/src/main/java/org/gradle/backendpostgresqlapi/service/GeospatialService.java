@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
@@ -63,4 +64,13 @@ public class GeospatialService {
     public List<ParkingSpace> getParkingSpaces() {
         return geospatialRepo.getAllParkingSpaces();
     }
+
+    public Optional<ParkingSpace> getParkingSpaceById(int id) {
+        return geospatialRepo.findById(id);
+    }
+
+    public List<ParkingSpace> findParkingSpacesByOccupancy(boolean occupied) {
+        return geospatialRepo.findByOccupied(occupied);
+    }
+    
 }
