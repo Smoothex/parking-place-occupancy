@@ -16,6 +16,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
@@ -102,7 +103,7 @@ public class JsonHandler {
         json.append("{\"coordinates\": [");
     
         for (Coordinate coord : polygon.getCoordinates()) {
-            json.append(String.format("{\"x\": %f, \"y\": %f},", coord.x, coord.y));
+            json.append(String.format(Locale.US, "{\"x\": %.15f, \"y\": %.15f},", coord.x, coord.y));
         }
     
         // Remove the trailing comma
