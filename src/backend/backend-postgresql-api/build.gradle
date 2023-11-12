@@ -27,6 +27,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web:3.1.5'
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+	implementation 'org.hibernate.orm:hibernate-spatial:6.3.1.Final'
 }
 
 tasks.named('test') {

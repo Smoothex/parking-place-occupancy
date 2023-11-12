@@ -22,27 +22,48 @@ public class ParkingSpaceController {
 
     // http://localhost:8080/api/parking-spaces
     @GetMapping
-    public ResponseEntity<List<ParkingSpace>> getAllParkingSpaces() {
-        List<ParkingSpace> parkingSpaces = geospatialService.getParkingSpaces();
+    public ResponseEntity<List<String>> getAllParkingSpaces() throws Exception {
+        List<String> parkingSpaces = geospatialService.getAllParkingSpacesAsJson();
         return ResponseEntity.ok(parkingSpaces);
     }
 
     // http://localhost:8080/api/parking-spaces/1
     @GetMapping("/{id}")
-    public ResponseEntity<ParkingSpace> getParkingSpaceById(@PathVariable("id") int id) {
-        Optional<ParkingSpace> parkingSpace = geospatialService.getParkingSpaceById(id);
+    public ResponseEntity<String> getParkingSpaceById(@PathVariable("id") int id) {
+        Optional<String> parkingSpace = geospatialService.getParkingSpaceByIdAsJson(id);
         return parkingSpace
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // http://localhost:8080/api/parking-spaces/1/area
+    @GetMapping("/{id}/area")
+    public ResponseEntity<Double> getParkingSpaceArea(@PathVariable("id") int id) {
+        Optional<Double> area = geospatialService.calculateAreaOfParkingSpace(id);
+        return area
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // http://localhost:8080/api/parking-spaces/search?occupied=true
     @GetMapping("/search")
-    public ResponseEntity<List<ParkingSpace>> findParkingSpacesByOccupancy(@RequestParam("occupied") boolean occupied) {
-        List<ParkingSpace> parkingSpaces = geospatialService.findParkingSpacesByOccupancy(occupied);
+    public ResponseEntity<List<String>> findParkingSpacesByOccupancy(@RequestParam("occupied") boolean occupied) {
+        List<String> parkingSpaces = geospatialService.findParkingSpacesByOccupancy(occupied);
         if (parkingSpaces.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(parkingSpaces);
+    }
+
+    // http://localhost:8080/api/parking-spaces/1/occupancy?occupied=true
+    @PatchMapping("/{id}/occupancy")
+    public ResponseEntity<?> updateOccupancyStatus(@PathVariable int id, @RequestParam boolean occupied) {
+        boolean updateSuccessful = geospatialService.updateOccupancyStatus(id, occupied);
+
+        if (updateSuccessful) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

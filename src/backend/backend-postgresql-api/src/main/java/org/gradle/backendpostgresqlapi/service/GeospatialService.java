@@ -3,15 +3,22 @@ package org.gradle.backendpostgresqlapi.service;
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.GeospatialRepo;
+import org.gradle.backendpostgresqlapi.util.JsonHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
+import org.locationtech.jts.geom.Polygon;
 
 @Slf4j
 @Service
@@ -47,30 +54,47 @@ public class GeospatialService {
         log.debug("Loading GeoJSON data into the database...");
 
         String geoJsonData = getJsonDataFromFile(GEOJSON_FILE);
-
-        for (String polygon : getPolygonsFromGeoJson(geoJsonData)) {
+        for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
             geospatialRepo.insertParkingSpace(polygon);
         }
 
         log.info("GeoJSON data successfully loaded into the database.");
     }
 
-    /**
-     * Fetches all parking space records from the database.
-     *
-     * @return a list of ParkingSpace objects representing the parking spaces in
-     * the database
-     */
-    public List<ParkingSpace> getParkingSpaces() {
-        return geospatialRepo.getAllParkingSpaces();
+    public List<String> getAllParkingSpacesAsJson() throws Exception {
+        List<ParkingSpace> parkingSpaces = geospatialRepo.findAll();
+        return parkingSpaces.stream()
+                            .map(JsonHandler::convertParkingSpaceToJson)
+                            .collect(Collectors.toList());
     }
 
-    public Optional<ParkingSpace> getParkingSpaceById(int id) {
-        return geospatialRepo.findById(id);
+    public Optional<String> getParkingSpaceByIdAsJson(int id) {
+        return geospatialRepo.findById(id)
+                             .map(JsonHandler::convertParkingSpaceToJson);
     }
 
-    public List<ParkingSpace> findParkingSpacesByOccupancy(boolean occupied) {
-        return geospatialRepo.findByOccupied(occupied);
+    public List<String> findParkingSpacesByOccupancy(boolean occupied) {
+        List<ParkingSpace> parkingSpaces = geospatialRepo.findByOccupied(occupied);
+        return parkingSpaces.stream()
+                    .map(JsonHandler::convertParkingSpaceToJson)
+                    .collect(Collectors.toList());
+    }
+
+    public boolean updateOccupancyStatus(int id, boolean occupied) {
+        Optional<ParkingSpace> parkingSpaceOptional = geospatialRepo.findById(id);
+        if (parkingSpaceOptional.isPresent()) {
+            ParkingSpace parkingSpace = parkingSpaceOptional.get();
+            parkingSpace.setOccupied(occupied);
+            geospatialRepo.save(parkingSpace);
+            return true;
+        }
+        return false;
+    }
+
+    public Optional<Double> calculateAreaOfParkingSpace(int id) {
+        return geospatialRepo.findById(id)
+                             .map(ParkingSpace::getPolygon)
+                             .map(Polygon::getArea);
     }
     
 }

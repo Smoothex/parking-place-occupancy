@@ -1,11 +1,10 @@
 package org.gradle.backendpostgresqlapi.entity;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
+import org.locationtech.jts.geom.Polygon;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -14,29 +13,33 @@ import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
 public class ParkingSpace {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ps_id")
     private int id;
 
     @Column(name = "ps_coordinates", nullable = false)
-    private String geoJson;
+    private Polygon polygon;
 
     @Column(name = "ps_occupied")
     private boolean occupied;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
-    protected ParkingSpace() {
-
-    }
+    public ParkingSpace() {}
 
     @Override
     public String toString() {
-        try {
-            return "ParkingSpace{id=" + id +
-                    ", coordinates=(" + getCoordinatesFromGeoJson(geoJson) + ")}" +
-                    ", isOccupied=" + occupied + "}";
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return "ParkingSpace{" +
+                    "id=" + id +
+                    ", coordinates=" + coordinatesToString(polygon) +
+                    ", isOccupied=" + occupied + 
+                "}";
+    }
+
+    private String coordinatesToString(Polygon polygon) {
+        if (polygon == null) return "null";
+    
+        return Stream.of(polygon.getCoordinates())
+                     .map(coordinate -> String.format("(%f, %f)", coordinate.x, coordinate.y))
+                     .collect(Collectors.joining(", "));
     }
 }

@@ -48,7 +48,7 @@ public class DatabaseConnection {
     @Order(2)
     public ApplicationRunner printParkingSpaces(GeospatialService geospatialService) {
         return args -> {
-            List<ParkingSpace> parkingSpaces = geospatialService.getParkingSpaces();
+            List<String> parkingSpaces = geospatialService.getAllParkingSpacesAsJson();
             parkingSpaces.forEach(System.out::println);
         };
     }
