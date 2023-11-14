@@ -9,16 +9,15 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
+import org.locationtech.jts.geom.Polygon;
 
 @Repository
 @Transactional
 public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
 
-    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (ps_id SERIAL PRIMARY KEY, " +
-            "ps_coordinates GEOGRAPHY(POLYGON, 4326), ps_occupied BOOLEAN DEFAULT 'f')";
+    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (ps_id SERIAL PRIMARY KEY, ps_coordinates GEOGRAPHY(POLYGON, 4326), ps_occupied BOOLEAN DEFAULT 'f')";
     String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON parking_spaces USING GIST (ps_coordinates)";
-    String INSERT_GEOJSON_SQL = "INSERT INTO parking_spaces (ps_coordinates) VALUES (ST_GeomFromGeoJSON(:parkSpace))";
-    String SELECT_PARKING_SPACES_SQL = "SELECT ps_id, ST_AsGeoJSON(ps_coordinates) AS ps_coordinates, ps_occupied FROM parking_spaces";
 
     @Modifying
     @Query(value = CREATE_TABLE_SQL, nativeQuery = true)
@@ -29,10 +28,13 @@ public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
     void createIndex();
 
     @Modifying
-    @Query(value = INSERT_GEOJSON_SQL, nativeQuery = true)
-    void insertParkingSpace(@Param("parkSpace") String parkingSpace);
+    default void insertParkingSpace(Polygon polygon) {
+        ParkingSpace parkingSpace = new ParkingSpace();
+        parkingSpace.setPolygon(polygon);
+        parkingSpace.setOccupied(false);
+        this.save(parkingSpace);
+    }
 
-    @Query(value = SELECT_PARKING_SPACES_SQL, nativeQuery = true)
-    List<ParkingSpace> getAllParkingSpaces();
+    List<ParkingSpace> findByOccupied(boolean occupied);
 
 }
