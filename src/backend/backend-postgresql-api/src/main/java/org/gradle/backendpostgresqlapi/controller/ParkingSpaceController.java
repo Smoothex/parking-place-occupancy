@@ -10,6 +10,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/parking-spaces")
+@CrossOrigin(origins = "http://localhost:4200")
 public class ParkingSpaceController {
 
     private final GeospatialService geospatialService;
@@ -18,6 +19,7 @@ public class ParkingSpaceController {
     public ParkingSpaceController(GeospatialService geospatialService) {
         this.geospatialService = geospatialService;
     }
+
 
     // http://localhost:8080/api/parking-spaces
     @GetMapping
@@ -37,8 +39,8 @@ public class ParkingSpaceController {
 
     // http://localhost:8080/api/parking-spaces/1/area
     @GetMapping("/{id}/area")
-    public ResponseEntity<Double> getParkingSpaceArea(@PathVariable("id") int id) {
-        Optional<Double> area = geospatialService.calculateAreaOfParkingSpace(id);
+    public ResponseEntity<String> getParkingSpaceArea(@PathVariable("id") int id) {
+        Optional<String> area = geospatialService.calculateAreaOfParkingSpace(id);
         return area
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

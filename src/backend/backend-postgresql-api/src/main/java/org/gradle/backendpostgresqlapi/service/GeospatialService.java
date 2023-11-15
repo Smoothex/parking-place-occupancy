@@ -96,7 +96,7 @@ public class GeospatialService {
         return false;
     }
 
-    public Optional<Double> calculateAreaOfParkingSpace(int id) {
+    public Optional<String> calculateAreaOfParkingSpace(int id) {
         return geospatialRepo.findById(id)
                              .map(ParkingSpace::getPolygon)
                              .map(this::transformAndCalculateArea);
@@ -117,7 +117,7 @@ public class GeospatialService {
      * @param polygon The Polygon object defined in WGS84 coordinates to be transformed and calculated.
      * @return The area of the polygon in square meters after transformation to UTM coordinates.
      */
-    private double transformAndCalculateArea(Polygon polygon) {
+    private String transformAndCalculateArea(Polygon polygon) {
         // Define the source and target CRS
         CRSFactory crsFactory = new CRSFactory();
         CoordinateReferenceSystem sourceCRS = crsFactory.createFromName("EPSG:4326"); // WGS84
@@ -149,6 +149,6 @@ public class GeospatialService {
         Geometry transformedGeom = transformer.transform(polygon);
 
         // Return the area of the transformed geometry
-        return transformedGeom.getArea();
+        return String.format("%.2f", transformedGeom.getArea());
     }
 }
