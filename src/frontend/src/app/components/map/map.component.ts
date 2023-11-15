@@ -77,7 +77,7 @@ export class MapComponent {
                 '<br>' +
                 'occupied : ' +
               JSON.stringify(parseElement.occupied) +
-              "Area : "+area+
+              " <br>Area : "+area+
                 '<br> <button>Edit</button></button>'
             );
           polygon.on('click', (event) => {
