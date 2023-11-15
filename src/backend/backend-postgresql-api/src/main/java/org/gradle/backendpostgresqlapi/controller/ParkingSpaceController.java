@@ -1,7 +1,6 @@
 package org.gradle.backendpostgresqlapi.controller;
 
 import org.gradle.backendpostgresqlapi.service.GeospatialService;
-import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

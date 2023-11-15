@@ -1,7 +1,6 @@
 package org.gradle.backendpostgresqlapi;
 
 import lombok.extern.slf4j.Slf4j;
-import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.service.GeospatialService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;

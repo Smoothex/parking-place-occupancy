@@ -30,7 +30,7 @@ import org.locationtech.proj4j.CoordinateReferenceSystem;
 @Service
 public class GeospatialService {
     private static final String GEOJSON_FILE = "classpath:data.geojson";
-     
+
     @Autowired
     private GeospatialRepo geospatialRepo;
 
@@ -104,15 +104,16 @@ public class GeospatialService {
 
     /**
      * Transforms the Coordinate Reference System (CRS) of a polygon and calculates its area.
-     * Handles the transformation by iterating over each coordinate of the polygon, applying 
-     * the coordinate conversion, and then computing the area of the resultant geometry.
-     * 
+     * Handles the transformation by iterating over each coordinate of the polygon, applying
+     * the coordinate conversion, and then computing the area of the resultant geometry.<br>
+     *
      * The source CRS is in WGS84 (World Geodetic System 1984) format, which is often used when working
-     * with GIS data and is based on a reference ellipsoid (i.e., the earth). Coordinates are represented as latitude and longitude.
-     * 
+     * with GIS data and is based on a reference ellipsoid (i.e., the earth). Coordinates
+     * are represented as latitude and longitude.<br>
+     *
      * The target CRS is in UTM (Universal Transverse Mercator) format, which is suited for spatial analysis
      * and uses Cartesian coordinate system with linear units (meters) for its coordinates.
-     * 
+     *
      * @param polygon The Polygon object defined in WGS84 coordinates to be transformed and calculated.
      * @return The area of the polygon in square meters after transformation to UTM coordinates.
      */
