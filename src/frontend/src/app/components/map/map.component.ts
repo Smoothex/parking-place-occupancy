@@ -54,13 +54,13 @@ export class MapComponent {
       data.forEach((element: any) => {
         const parseElement = JSON.parse(element);
         console.log(parseElement);
-        //calculate area 
+        //calculate area
         // todo: add models to the remaining structure
         this.restApi.getParkingSpaceAreaWithId(parseElement.id).then((areaData)=>{
           // console.log(areaData)
           return areaData;
         }, (error) => {
-          
+
         }).then((area) => {
 
           var coordinatesArray = parseElement.polygon.coordinates;
@@ -77,7 +77,7 @@ export class MapComponent {
                 '<br>' +
                 'occupied : ' +
               JSON.stringify(parseElement.occupied) +
-              " <br>Area : "+area+
+              " <br>Area : " + area + " \u33A1"+
                 '<br> <button>Edit</button></button>'
             );
           polygon.on('click', (event) => {
@@ -87,13 +87,13 @@ export class MapComponent {
               this.markerLayer.push(marker)
             });
           });
-          
+
 
 
 
         })
 
-      
+
       });
     });
   }
