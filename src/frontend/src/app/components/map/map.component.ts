@@ -9,7 +9,7 @@ import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
 })
 export class MapComponent {
   private map: any;
-  private markerLayer: any;
+  private markerLayer: any=[]
 
   icon = {
     icon: L.icon({
@@ -37,6 +37,7 @@ export class MapComponent {
     // var marker = L.marker(e.latlng, this.icon)
     //   marker.addTo(this.map)
     // todo: any markers present remove it automatically
+    this.map.removeLayer(this.markerLayer)
   }
 
   constructor(private restApi: RestAPIService) {}
@@ -53,28 +54,46 @@ export class MapComponent {
       data.forEach((element: any) => {
         const parseElement = JSON.parse(element);
         console.log(parseElement);
-        var coordinatesArray = parseElement.polygon.coordinates;
-        const arrayOfArrays = coordinatesArray.map((obj: any) => [
-          obj.y,
-          obj.x,
-        ]);
-        console.log(arrayOfArrays);
-        var polygon = L.polygon(arrayOfArrays)
-          .addTo(this.map)
-          .bindPopup(
-            'Id ' +
-              parseElement.id +
-              '<br>' +
-              'occupied : ' +
+        //calculate area 
+        // todo: add models to the remaining structure
+        this.restApi.getParkingSpaceAreaWithId(parseElement.id).then((areaData)=>{
+          // console.log(areaData)
+          return areaData;
+        }, (error) => {
+          
+        }).then((area) => {
+
+          var coordinatesArray = parseElement.polygon.coordinates;
+          const arrayOfArrays = coordinatesArray.map((obj: any) => [
+            obj.y,
+            obj.x,
+          ]);
+          console.log(arrayOfArrays);
+          var polygon = L.polygon(arrayOfArrays)
+            .addTo(this.map)
+            .bindPopup(
+              'Id ' +
+                parseElement.id +
+                '<br>' +
+                'occupied : ' +
               JSON.stringify(parseElement.occupied) +
-              '<br> <button>Edit</button></button>'
-          );
-        polygon.on('click', (event) => {
-          console.log(event + 'parse' + parseElement.id);
-          arrayOfArrays.forEach((elem: any) => {
-            L.marker(elem, this.icon).addTo(this.map);
+              "Area : "+area+
+                '<br> <button>Edit</button></button>'
+            );
+          polygon.on('click', (event) => {
+            console.log(event + 'parse' + parseElement.id);
+            arrayOfArrays.forEach((elem: any) => {
+              var marker = L.marker(elem, this.icon).addTo(this.map);
+              this.markerLayer.push(marker)
+            });
           });
-        });
+          
+
+
+
+        })
+
+      
       });
     });
   }
