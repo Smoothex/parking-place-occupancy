@@ -1,8 +1,8 @@
 # Build stage
-FROM gradle:8.4.0-jdk17 AS BUILD
+FROM  gradle:8.4.0-jdk17 AS BUILD
 WORKDIR /app
 COPY backend-postgresql-api/ .
-RUN gradle clean build
+RUN gradle clean build --debug
 
 # Run stage
 FROM openjdk:22-ea-17-slim

@@ -1,0 +1,159 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams, HttpHeaders } from "@angular/common/http";
+@Injectable({
+  providedIn: 'root'
+})
+export class RestAPIService {
+
+  apiURL:string="http://localhost:8080/api/"
+
+  constructor(private http: HttpClient) { }
+
+
+  
+
+  /*
+  GET
+
+  */
+  /**
+   * 
+   * @param id 
+   * @returns 
+   */
+  getAllParkingSpaces(): Promise<any>{
+    
+    return new Promise((resolve) => {
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        // params: new HttpParams().set("param", tripid),
+      };
+      this.http.get(this.apiURL+"parking-spaces", options).pipe().subscribe(
+        (data) => {
+          resolve(data)
+          
+        }, (error) => {
+          console.error("error generated", error)
+        }
+      )
+      
+    })
+
+  }
+
+/**
+ * 
+ * @param id {id} of parking spaces to
+ * @returns information about the parking space matched to id
+ */
+  getParkingSpaceWithId(id: string) {
+
+    return new Promise((resolve) => {
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        // params: new HttpParams().set("param", tripid),
+      };
+      this.http.get(this.apiURL+"parking-spaces/"+id, options).pipe().subscribe(
+        (data) => {
+          resolve(data)
+          
+        }, (error) => {
+          console.error("error generated", error)
+        }
+      )
+      
+    })
+    
+  }
+
+  /**
+ * 
+ * @param id {id} of parking spaces to
+ * @returns information about the parking space matched to id
+ */
+  getParkingSpaceAreaWithId(id: string) {
+
+    return new Promise((resolve) => {
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        // params: new HttpParams().set("param", tripid),
+      };
+      this.http.get(this.apiURL+"parking-spaces/"+id+"/area", options).pipe().subscribe(
+        (data) => {
+          resolve(data)
+        }, (error) => {
+          console.error("error generated", error)
+        }
+      )
+      
+    })
+    
+  }
+  /**
+   * 
+   * @param occupied Occupancy state of space
+   * @returns the parking spaces which matched occupancy state 
+   */
+
+  getAllParkingSpaceOccupied(occupied:boolean) {
+
+    return new Promise((resolve) => {
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        params: new HttpParams().set("occupied", occupied),
+      };
+      this.http.get(this.apiURL+"parking-spaces/search", options).pipe().subscribe(
+        (data) => {
+          resolve(data)
+        }, (error) => {
+          console.error("error generated", error)
+        }
+      )
+      
+    })
+    
+  }
+
+    /**
+   * 
+   * @param occupied Occupancy state of space
+   * @returns the parking spaces which matched occupancy state 
+   */
+
+    getParkingSpaceOccupied(id:string,occupied:boolean) {
+
+      return new Promise((resolve) => {
+        const options = {
+          // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+          params: new HttpParams().set("occupied", occupied),
+        };
+        this.http.get(this.apiURL+"parking-spaces/"+id+"/occupancy", options).pipe().subscribe(
+          (data) => {
+            resolve(data)
+          }, (error) => {
+            console.error("error generated", error)
+          }
+        )
+        
+      })
+      
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
