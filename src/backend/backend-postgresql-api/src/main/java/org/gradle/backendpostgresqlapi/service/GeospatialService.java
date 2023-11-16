@@ -30,7 +30,7 @@ import org.locationtech.proj4j.CoordinateReferenceSystem;
 @Service
 public class GeospatialService {
     private static final String GEOJSON_FILE = "classpath:data.geojson";
-     
+
     @Autowired
     private GeospatialRepo geospatialRepo;
 
@@ -96,7 +96,7 @@ public class GeospatialService {
         return false;
     }
 
-    public Optional<Double> calculateAreaOfParkingSpace(int id) {
+    public Optional<String> calculateAreaOfParkingSpace(int id) {
         return geospatialRepo.findById(id)
                              .map(ParkingSpace::getPolygon)
                              .map(this::transformAndCalculateArea);
@@ -104,19 +104,20 @@ public class GeospatialService {
 
     /**
      * Transforms the Coordinate Reference System (CRS) of a polygon and calculates its area.
-     * Handles the transformation by iterating over each coordinate of the polygon, applying 
-     * the coordinate conversion, and then computing the area of the resultant geometry.
-     * 
+     * Handles the transformation by iterating over each coordinate of the polygon, applying
+     * the coordinate conversion, and then computing the area of the resultant geometry.<br>
+     *
      * The source CRS is in WGS84 (World Geodetic System 1984) format, which is often used when working
-     * with GIS data and is based on a reference ellipsoid (i.e., the earth). Coordinates are represented as latitude and longitude.
-     * 
+     * with GIS data and is based on a reference ellipsoid (i.e., the earth). Coordinates
+     * are represented as latitude and longitude.<br>
+     *
      * The target CRS is in UTM (Universal Transverse Mercator) format, which is suited for spatial analysis
      * and uses Cartesian coordinate system with linear units (meters) for its coordinates.
-     * 
+     *
      * @param polygon The Polygon object defined in WGS84 coordinates to be transformed and calculated.
      * @return The area of the polygon in square meters after transformation to UTM coordinates.
      */
-    private double transformAndCalculateArea(Polygon polygon) {
+    private String transformAndCalculateArea(Polygon polygon) {
         // Define the source and target CRS
         CRSFactory crsFactory = new CRSFactory();
         CoordinateReferenceSystem sourceCRS = crsFactory.createFromName("EPSG:4326"); // WGS84
@@ -148,6 +149,6 @@ public class GeospatialService {
         Geometry transformedGeom = transformer.transform(polygon);
 
         // Return the area of the transformed geometry
-        return transformedGeom.getArea();
+        return String.format("%.2f", transformedGeom.getArea());
     }
 }

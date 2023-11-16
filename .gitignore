@@ -17,5 +17,5 @@ out/
 ### VS Code ###
 .vscode/
 
-.DS_Store
 ParkingSpaces
+data.geojson
