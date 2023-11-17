@@ -118,17 +118,10 @@ public class GeospatialService {
      * @return The area of the polygon in square meters after transformation to UTM coordinates.
      */
     private String transformAndCalculateArea(Polygon polygon) {
-        // Define the source and target CRS
-        CRSFactory crsFactory = new CRSFactory();
-        CoordinateReferenceSystem sourceCRS = crsFactory.createFromName("EPSG:4326"); // WGS84
-        CoordinateReferenceSystem targetCRS = crsFactory.createFromName("EPSG:25833"); // UTM
-
-        // Create a factory for coordinate transformations
-        CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
-        CoordinateTransform transform = ctFactory.createTransform(sourceCRS, targetCRS);
+        CoordinateTransform coordinateTransform = getCoordinateTransform();
 
         // Create a custom GeometryTransformer
-        GeometryTransformer transformer = new GeometryTransformer() {
+        GeometryTransformer geomTransformer = new GeometryTransformer() {
             @Override
             protected CoordinateSequence transformCoordinates(CoordinateSequence coordinates, Geometry parent) {
                 CoordinateSequence transformedCoordinates = coordinates.copy();
@@ -136,7 +129,7 @@ public class GeospatialService {
                     // Create a ProjCoordinate from the current coordinate
                     ProjCoordinate srcCoord = new ProjCoordinate(coordinates.getX(i), coordinates.getY(i));
                     // Transform the source coordinate to the target CRS
-                    ProjCoordinate dstCoord = transform.transform(srcCoord, new ProjCoordinate());
+                    ProjCoordinate dstCoord = coordinateTransform.transform(srcCoord, new ProjCoordinate());
                     // Update the transformed coordinates sequence with the new values
                     transformedCoordinates.setOrdinate(i, 0, dstCoord.x);
                     transformedCoordinates.setOrdinate(i, 1, dstCoord.y);
@@ -146,9 +139,20 @@ public class GeospatialService {
         };
 
         // Transform the geometry
-        Geometry transformedGeom = transformer.transform(polygon);
+        Geometry transformedGeom = geomTransformer.transform(polygon);
 
         // Return the area of the transformed geometry
         return String.format("%.2f", transformedGeom.getArea());
+    }
+
+    private static CoordinateTransform getCoordinateTransform() {
+        CRSFactory crsFactory = new CRSFactory();
+        // Define the source and target CRS
+        CoordinateReferenceSystem sourceCRS = crsFactory.createFromName("EPSG:4326"); // WGS84
+        CoordinateReferenceSystem targetCRS = crsFactory.createFromName("EPSG:25833"); // UTM
+
+        // Create a factory for coordinate transformations
+        CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
+        return ctFactory.createTransform(sourceCRS, targetCRS);
     }
 }
