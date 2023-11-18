@@ -66,7 +66,7 @@ public class GeospatialService {
         log.info("GeoJSON data successfully loaded into the database.");
     }
 
-    public List<String> getAllParkingSpacesAsJson() throws Exception {
+    public List<String> getAllParkingSpacesAsJson() {
         List<ParkingSpace> parkingSpaces = geospatialRepo.findAll();
         return parkingSpaces.stream()
                             .map(JsonHandler::convertParkingSpaceToJson)
