@@ -47,4 +47,4 @@ hs_err_pid*
 replay_pid*
 
 # Spatial data files
-.geojson
+*.geojson
