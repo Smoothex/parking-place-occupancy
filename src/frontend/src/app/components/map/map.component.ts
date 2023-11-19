@@ -72,13 +72,10 @@ export class MapComponent {
           var polygon = L.polygon(arrayOfArrays)
             .addTo(this.map)
             .bindPopup(
-              'Id ' +
-                parseElement.id +
-                '<br>' +
-                'occupied : ' +
-              JSON.stringify(parseElement.occupied) +
-              " <br>Area : " + area + " \u33A1"+
-                '<br> <button>Edit</button></button>'
+              'Id: ' + parseElement.id + '<br>' +
+              'Occupied: ' + JSON.stringify(parseElement.occupied) + ' <br>' +
+              'Area: ' + area + ' m&sup2;' + '<br>' +
+              ' <button>Edit</button></button>'
             );
           polygon.on('click', (event) => {
             console.log(event + 'parse' + parseElement.id);
