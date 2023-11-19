@@ -17,14 +17,6 @@ import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFi
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
 
 import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.geom.util.GeometryTransformer;
-import org.locationtech.jts.geom.CoordinateSequence;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.proj4j.CRSFactory;
-import org.locationtech.proj4j.CoordinateTransform;
-import org.locationtech.proj4j.CoordinateTransformFactory;
-import org.locationtech.proj4j.ProjCoordinate;
-import org.locationtech.proj4j.CoordinateReferenceSystem;
 
 @Slf4j
 @Service
@@ -63,8 +55,13 @@ public class GeospatialService {
             geospatialRepo.insertParkingSpace(polygon);
         }
 
-
         log.info("GeoJSON data successfully loaded into the database.");
+    }
+
+    public void calculateAndUpdateAreaColumn() {
+        log.debug("Calculating and updating area column in the database...");
+        geospatialRepo.updateAreaColumn();
+        log.info("Area column values were calculated and set accordingly.");
     }
 
     public List<String> getAllParkingSpacesAsJson() {
@@ -74,8 +71,12 @@ public class GeospatialService {
                             .collect(Collectors.toList());
     }
 
+    private Optional<ParkingSpace> getParkingSpaceById(int id) {
+        return geospatialRepo.findById(id);
+    }
+
     public Optional<String> getParkingSpaceByIdAsJson(int id) {
-        return geospatialRepo.findById(id)
+        return getParkingSpaceById(id)
                              .map(JsonHandler::convertParkingSpaceToJson);
     }
 
@@ -87,7 +88,7 @@ public class GeospatialService {
     }
 
     public boolean updateOccupancyStatus(int id, boolean occupied) {
-        Optional<ParkingSpace> parkingSpaceOptional = geospatialRepo.findById(id);
+        Optional<ParkingSpace> parkingSpaceOptional = getParkingSpaceById(id);
         if (parkingSpaceOptional.isPresent()) {
             ParkingSpace parkingSpace = parkingSpaceOptional.get();
             parkingSpace.setOccupied(occupied);
@@ -98,60 +99,6 @@ public class GeospatialService {
     }
 
     public Optional<String> getAreaOfParkingSpaceById(int id) {
-        return geospatialRepo.findById(id).map(ParkingSpace::getArea).map(area -> String.format("%.2f", area));
-    }
-
-    /**
-     * Transforms the Coordinate Reference System (CRS) of a polygon and calculates its area.
-     * Handles the transformation by iterating over each coordinate of the polygon, applying
-     * the coordinate conversion, and then computing the area of the resultant geometry.<br>
-     *
-     * The source CRS is in WGS84 (World Geodetic System 1984) format, which is often used when working
-     * with GIS data and is based on a reference ellipsoid (i.e., the earth). Coordinates
-     * are represented as latitude and longitude.<br>
-     *
-     * The target CRS is in UTM (Universal Transverse Mercator) format, which is suited for spatial analysis
-     * and uses Cartesian coordinate system with linear units (meters) for its coordinates.
-     *
-     * @param polygon The Polygon object defined in WGS84 coordinates to be transformed and calculated.
-     * @return The area of the polygon in square meters after transformation to UTM coordinates.
-     */
-    private String transformAndCalculateArea(Polygon polygon) {
-        CoordinateTransform coordinateTransform = getCoordinateTransform();
-
-        // Create a custom GeometryTransformer
-        GeometryTransformer geomTransformer = new GeometryTransformer() {
-            @Override
-            protected CoordinateSequence transformCoordinates(CoordinateSequence coordinates, Geometry parent) {
-                CoordinateSequence transformedCoordinates = coordinates.copy();
-                for (int i = 0; i < coordinates.size(); i++) {
-                    // Create a ProjCoordinate from the current coordinate
-                    ProjCoordinate srcCoord = new ProjCoordinate(coordinates.getX(i), coordinates.getY(i));
-                    // Transform the source coordinate to the target CRS
-                    ProjCoordinate dstCoord = coordinateTransform.transform(srcCoord, new ProjCoordinate());
-                    // Update the transformed coordinates sequence with the new values
-                    transformedCoordinates.setOrdinate(i, 0, dstCoord.x);
-                    transformedCoordinates.setOrdinate(i, 1, dstCoord.y);
-                }
-                return transformedCoordinates;
-            }
-        };
-
-        // Transform the geometry
-        Geometry transformedGeom = geomTransformer.transform(polygon);
-
-        // Return the area of the transformed geometry
-        return String.format("%.2f", transformedGeom.getArea());
-    }
-
-    private static CoordinateTransform getCoordinateTransform() {
-        CRSFactory crsFactory = new CRSFactory();
-        // Define the source and target CRS
-        CoordinateReferenceSystem sourceCRS = crsFactory.createFromName("EPSG:4326"); // WGS84
-        CoordinateReferenceSystem targetCRS = crsFactory.createFromName("EPSG:25833"); // UTM
-
-        // Create a factory for coordinate transformations
-        CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
-        return ctFactory.createTransform(sourceCRS, targetCRS);
+        return getParkingSpaceById(id).map(ParkingSpace::getArea).map(Object::toString);
     }
 }
