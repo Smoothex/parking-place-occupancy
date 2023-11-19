@@ -35,8 +35,7 @@ public class ParkingSpace {
                     "id=" + id +
                     ", coordinates=" + coordinatesToString(polygon) +
                     ", isOccupied=" + occupied +
-                    ", area=" + area +
-                "}";
+                    ", area=" + area + "}";
     }
 
     private String coordinatesToString(Polygon polygon) {
