@@ -51,23 +51,22 @@ public class JsonHandler {
         return geoJsonData;
     }
 
-
     /**
      * This method gets the polygon data from a geoJSON string.
      *
-     * @param geoJson a string, which contains polygons' data
-     * @return a list with all the read polygons
+     * @param geoJson a string, which contains polygons and their data
+     * @return a list with all processed polygons
      * @throws JsonProcessingException an error when there is a problem processing the GeoJSON string
      */
     public static List<Polygon> getPolygonsFromGeoJson(String geoJson) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(geoJson);
         JsonNode features = rootNode.path("features");
-    
+
         List<Polygon> polygons = new ArrayList<>();
         for (JsonNode feature : features) {
             JsonNode coordinates = feature.path("geometry").path("coordinates");
-            Polygon polygon = jsonNodeToPolygon(coordinates);
+            Polygon polygon = convertJsonNodeToPolygon(coordinates);
             polygons.add(polygon);
         }
         return polygons;
@@ -79,47 +78,53 @@ public class JsonHandler {
      * @param coordinatesNode the JsonNode containing the coordinates
      * @return a JTS Polygon object
      */
-    private static Polygon jsonNodeToPolygon(JsonNode coordinatesNode) {
+    private static Polygon convertJsonNodeToPolygon(JsonNode coordinatesNode) {
         List<Coordinate> coordinatesList = new ArrayList<>();
         for (JsonNode coordinateArray : coordinatesNode.get(0)) { // Assuming the first array contains the polygon coordinates
             double x = coordinateArray.get(0).asDouble();
             double y = coordinateArray.get(1).asDouble();
             coordinatesList.add(new Coordinate(x, y));
         }
-    
+
         // Close the linear ring if it's not already closed
         if (!coordinatesList.get(0).equals(coordinatesList.get(coordinatesList.size() - 1))) {
             coordinatesList.add(coordinatesList.get(0));
         }
-    
+
         Coordinate[] coordinates = coordinatesList.toArray(new Coordinate[0]);
         return geometryFactory.createPolygon(coordinates);
     }
 
-    public static String polygonToJson(Polygon polygon) {
+    private static String convertPolygonToJson(Polygon polygon) {
         if (polygon == null) return null;
-    
+
         StringBuilder json = new StringBuilder();
         json.append("{\"coordinates\": [");
-    
+
         for (Coordinate coord : polygon.getCoordinates()) {
             json.append(String.format(Locale.US, "{\"x\": %.15f, \"y\": %.15f},", coord.x, coord.y));
         }
-    
+
         // Remove the trailing comma
         if (json.charAt(json.length() - 1) == ',') {
             json.deleteCharAt(json.length() - 1);
         }
-    
+
         json.append("]}");
         return json.toString();
     }
-    
+
+    /**
+     * Converts parking space object to JSON format.
+     *
+     * @param parkingSpace the object to convert
+     * @return a string representation in JSON format
+     */
     public static String convertParkingSpaceToJson(ParkingSpace parkingSpace) {
         ObjectMapper mapper = new ObjectMapper();
 
         // Convert Polygon to JSON
-        String polygonJson = JsonHandler.polygonToJson(parkingSpace.getPolygon());
+        String polygonJson = JsonHandler.convertPolygonToJson(parkingSpace.getPolygon());
 
         try {
             // Construct a JSON object
@@ -127,6 +132,7 @@ public class JsonHandler {
             parkingSpaceJson.put("id", parkingSpace.getId());
             parkingSpaceJson.set("polygon", mapper.readTree(polygonJson));
             parkingSpaceJson.put("occupied", parkingSpace.isOccupied());
+            parkingSpaceJson.put("area", parkingSpace.getArea());
 
             // Convert the whole object to a JSON string
             return mapper.writeValueAsString(parkingSpaceJson);
@@ -135,5 +141,4 @@ public class JsonHandler {
             throw new RuntimeException("Error converting ParkingSpace to JSON", e);
         }
     }
-    
 }
