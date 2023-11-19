@@ -38,7 +38,7 @@ public class JsonHandler {
      */
     public static String getJsonDataFromFile(String filePath) throws IOException {
         ResourceLoader resourceLoader = new DefaultResourceLoader();
-        InputStream inputStream = resourceLoader.getResource(filePath).getInputStream();
+        InputStream inputStream = resourceLoader.getResource("classpath:" + filePath).getInputStream();
 
         String geoJsonData;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {

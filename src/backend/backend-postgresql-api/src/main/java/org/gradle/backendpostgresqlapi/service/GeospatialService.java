@@ -2,6 +2,7 @@ package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.gradle.backendpostgresqlapi.configuration.GeoDataFile;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.GeospatialRepo;
 import org.gradle.backendpostgresqlapi.util.JsonHandler;
@@ -17,6 +18,8 @@ import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFi
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
 
 import org.locationtech.jts.geom.Polygon;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -24,6 +27,9 @@ public class GeospatialService {
 
     @Autowired
     private GeospatialRepo geospatialRepo;
+
+    @Autowired
+    private GeoDataFile geoDataFile;
 
     public GeospatialService() {
     }
@@ -44,18 +50,23 @@ public class GeospatialService {
      * reads a GeoJSON file from the filesystem, parses it, and then
      * inserts the data into the `parking_spaces` table.
      *
-     * @param filePath the location of the file
      * @throws IOException an error when there is a problem reading the GeoJSON file
      */
-    public void loadGeoJsonDataIntoDatabase(String filePath) throws IOException {
-        log.debug("Loading GeoJSON data into the database...");
+    public void loadGeoJsonDataIntoDatabase() throws IOException {
+        List<String> filePaths = geoDataFile.getPaths();
 
-        String geoJsonData = getJsonDataFromFile(filePath);
-        for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            geospatialRepo.insertParkingSpace(polygon);
+        if (!CollectionUtils.isEmpty(filePaths) && StringUtils.hasLength(filePaths.get(0))) {
+            log.debug("Loading GeoJSON data into the database...");
+
+            for (String filePath: filePaths) {
+                String geoJsonData = getJsonDataFromFile(filePath);
+
+                for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
+                    geospatialRepo.insertParkingSpace(polygon);
+                }
+            }
+            log.info("GeoJSON data successfully loaded into the database.");
         }
-
-        log.info("GeoJSON data successfully loaded into the database.");
     }
 
     public void calculateAndUpdateAreaColumn() {
