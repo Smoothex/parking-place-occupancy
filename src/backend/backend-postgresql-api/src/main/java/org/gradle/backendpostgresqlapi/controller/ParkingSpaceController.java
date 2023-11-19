@@ -20,10 +20,9 @@ public class ParkingSpaceController {
         this.geospatialService = geospatialService;
     }
 
-
     // http://localhost:8080/api/parking-spaces
     @GetMapping
-    public ResponseEntity<List<String>> getAllParkingSpaces() throws Exception {
+    public ResponseEntity<List<String>> getAllParkingSpaces() {
         List<String> parkingSpaces = geospatialService.getAllParkingSpacesAsJson();
         return ResponseEntity.ok(parkingSpaces);
     }
@@ -63,8 +62,8 @@ public class ParkingSpaceController {
 
         if (updateSuccessful) {
             return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
         }
+
+        return ResponseEntity.notFound().build();
     }
 }
