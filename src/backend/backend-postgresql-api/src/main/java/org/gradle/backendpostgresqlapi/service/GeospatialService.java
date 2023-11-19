@@ -29,7 +29,6 @@ import org.locationtech.proj4j.CoordinateReferenceSystem;
 @Slf4j
 @Service
 public class GeospatialService {
-    private static final String GEOJSON_FILE = "classpath:data.geojson";
 
     @Autowired
     private GeospatialRepo geospatialRepo;
@@ -53,15 +52,17 @@ public class GeospatialService {
      * reads a GeoJSON file from the filesystem, parses it, and then
      * inserts the data into the `parking_spaces` table.
      *
+     * @param filePath the location of the file
      * @throws IOException an error when there is a problem reading the GeoJSON file
      */
-    public void loadGeoJsonDataIntoDatabase() throws IOException {
+    public void loadGeoJsonDataIntoDatabase(String filePath) throws IOException {
         log.debug("Loading GeoJSON data into the database...");
 
-        String geoJsonData = getJsonDataFromFile(GEOJSON_FILE);
+        String geoJsonData = getJsonDataFromFile(filePath);
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
             geospatialRepo.insertParkingSpace(polygon);
         }
+
 
         log.info("GeoJSON data successfully loaded into the database.");
     }
@@ -96,10 +97,8 @@ public class GeospatialService {
         return false;
     }
 
-    public Optional<String> calculateAreaOfParkingSpace(int id) {
-        return geospatialRepo.findById(id)
-                             .map(ParkingSpace::getPolygon)
-                             .map(this::transformAndCalculateArea);
+    public Optional<String> getAreaOfParkingSpaceById(int id) {
+        return geospatialRepo.findById(id).map(ParkingSpace::getArea).map(area -> String.format("%.2f", area));
     }
 
     /**
