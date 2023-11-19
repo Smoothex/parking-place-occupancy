@@ -14,6 +14,7 @@ import java.util.List;
 @SpringBootApplication
 public class DatabaseConnection {
 
+    private static String inputDataFormat = "csv";
     public static void main(String[] args) {
         SpringApplication.run(DatabaseConnection.class, args);
     }
@@ -31,7 +32,11 @@ public class DatabaseConnection {
     ApplicationRunner initializer(GeospatialService geospatialService) {
         return args -> {
             geospatialService.initializeDatabase();
-            geospatialService.loadGeoJsonDataIntoDatabase();
+            if (inputDataFormat.equals("geojson")) {
+                geospatialService.loadGeoJsonDataIntoDatabase();
+            } else {
+              geospatialService.loadCsvDataIntoDatabase();  
+            }
         };
     }
 

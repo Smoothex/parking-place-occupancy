@@ -6,7 +6,10 @@ import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.GeospatialRepo;
 import org.gradle.backendpostgresqlapi.util.JsonHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
+
+import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.IOException;
 import java.util.List;
@@ -15,6 +18,8 @@ import java.util.stream.Collectors;
 
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
+import org.gradle.backendpostgresqlapi.util.CsvHandler;
+
 
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.util.GeometryTransformer;
@@ -30,12 +35,19 @@ import org.locationtech.proj4j.CoordinateReferenceSystem;
 @Service
 public class GeospatialService {
     private static final String GEOJSON_FILE = "classpath:data.geojson";
+    private static final String CSV_FILE = "classpath:data.csv";
+
+    private final ResourceLoader resourceLoader;
+    
+    // Constructor injection is a good practice for mandatory dependencies
+    public GeospatialService(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
 
     @Autowired
     private GeospatialRepo geospatialRepo;
 
-    public GeospatialService() {
-    }
+    
 
     /**
      * Initializes the database schema for storing parking spaces.
@@ -57,14 +69,30 @@ public class GeospatialService {
      */
     public void loadGeoJsonDataIntoDatabase() throws IOException {
         log.debug("Loading GeoJSON data into the database...");
-
         String geoJsonData = getJsonDataFromFile(GEOJSON_FILE);
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
             geospatialRepo.insertParkingSpace(polygon);
         }
-
         log.info("GeoJSON data successfully loaded into the database.");
     }
+
+    /**
+     * Loads data from a CSV file into the database. The method
+     * reads a CSV file from the filesystem, parses it, and then
+     * inserts the data into the `parking_spaces` table.
+     *
+     * @throws IOException an error when there is a problem reading the GeoJSON file
+     * @throws CsvValidationException
+     */
+    public void loadCsvDataIntoDatabase() throws IOException, CsvValidationException {
+        log.debug("Loading CSV data into the database...");
+        List<ParkingSpace> csvParkingSpaces = CsvHandler.getCsvDataFromFile(resourceLoader, CSV_FILE);
+        for (ParkingSpace parkingSpace : csvParkingSpaces) {
+            geospatialRepo.insertParkingSpaceFromCSV(parkingSpace);
+        }
+        log.info("CSV data successfully loaded into the database.");
+    }
+    
 
     public List<String> getAllParkingSpacesAsJson() {
         List<ParkingSpace> parkingSpaces = geospatialRepo.findAll();

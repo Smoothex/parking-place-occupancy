@@ -20,8 +20,17 @@ public class ParkingSpace {
     @Column(name = "ps_coordinates", nullable = false)
     private Polygon polygon;
 
-    @Column(name = "ps_occupied")
+    @Column(name = "ps_occupied", nullable = true)
     private boolean occupied;
+
+    @Column(name = "area")
+    private double area;
+
+    @Column(name = "numberOfParkingSpaces", nullable = true)
+    private Integer numberOfParkingSpaces;
+
+    @Column(name = "position", nullable = true)
+    private String position;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
     public ParkingSpace() {}
@@ -32,6 +41,9 @@ public class ParkingSpace {
                     "id=" + id +
                     ", coordinates=" + coordinatesToString(polygon) +
                     ", isOccupied=" + occupied + 
+                    ", area=" + area +
+                    ", numberOfParkingSpaces=" + numberOfParkingSpaces +
+                    ", position=" + position +
                 "}";
     }
 
