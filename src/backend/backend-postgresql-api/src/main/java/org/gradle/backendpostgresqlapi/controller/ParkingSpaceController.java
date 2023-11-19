@@ -40,7 +40,7 @@ public class ParkingSpaceController {
     // http://localhost:8080/api/parking-spaces/1/area
     @GetMapping("/{id}/area")
     public ResponseEntity<String> getParkingSpaceArea(@PathVariable("id") int id) {
-        Optional<String> area = geospatialService.calculateAreaOfParkingSpace(id);
+        Optional<String> area = geospatialService.getAreaOfParkingSpaceById(id);
         return area
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
