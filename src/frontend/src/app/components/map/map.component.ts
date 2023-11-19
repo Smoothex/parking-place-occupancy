@@ -55,15 +55,9 @@ export class MapComponent {
   }
 
   markParkingPlaces(): void {
-    this.restApi.getAllParkingSpaces().then((data:any) => {
+    this.restApi.getAllParkingSpaces().then((data: any) => {
       data.forEach((element: any) => {
         const parseElement = JSON.parse(element);
-        console.log(parseElement);
-        const coordinateArray = parseElement.polygon.coordinates.map((obj: any) => 
-          [obj.y, obj.x]
-        )
-        console.log("changing",coordinateArray )
-        this.parkingSpaceData.push(parseElement)
         this.restApi
           .getParkingSpaceAreaWithId(parseElement.id)
           .then(
@@ -79,7 +73,13 @@ export class MapComponent {
               obj.y,
               obj.x,
             ]);
-            // console.log(arrayOfArrays);
+            parseElement.polygon.coordinates = arrayOfArrays
+            let obj = {...
+              parseElement,
+              // "marker":arrayOfArrays
+            }
+            this.parkingSpaceData.push(obj)
+
             var polygon = L.polygon(arrayOfArrays)
               .addTo(this.map)
               .bindPopup(
@@ -103,13 +103,15 @@ export class MapComponent {
               console.log(event + 'parse' + parseElement.id);
               polygon.bringToFront()
               arrayOfArrays.forEach((elem: any) => {
-                this.createMarkerPersistentStorage(elem)
+                // const marker = this.createMarkerPersistentStorage(elem)
+                // this.parkingSpaceData[0]
+                console.log(polygon)
                 
               });
             });
           });
       })
-      // console.log(this.parkingSpaceData)
+      console.log(this.parkingSpaceData)
 
     })
       
@@ -118,14 +120,14 @@ export class MapComponent {
    * Event handler activated while changing the polygon shape
    * @param latlng geolocation of marker on the map
    */
-  createMarkerPersistentStorage(latlng: L.LatLng): void{
+  createMarkerPersistentStorage(latlng: L.LatLng): L.Marker{
     var marker = L.marker(latlng, this.markerIcon).addTo(this.map);
     marker.on('drag', function (e: any) {
       console.log("dragging marker")
       console.log("marker position ",e.latlng)
     })
-    
-    this.markerLayer.push(marker);
+    return marker
+    // this.markerLayer.push(marker);
     
   }
 
