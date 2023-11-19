@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from "@angular/common/http";
+import { ParkingSpace } from 'src/app/interfaces/parking-space';
 @Injectable({
   providedIn: 'root'
 })

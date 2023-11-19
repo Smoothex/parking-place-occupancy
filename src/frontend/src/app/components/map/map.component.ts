@@ -9,9 +9,13 @@ import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
 })
 export class MapComponent {
   private map: any;
-  private markerLayer: any=[]
+  private markerLayer: any = [];
+  private parkingSpaceData: any=[];
 
-  icon = {
+
+
+  markerIcon = {
+    draggable:true,
     icon: L.icon({
       iconSize: [25, 41],
       iconAnchor: [12.5, 41],
@@ -20,6 +24,7 @@ export class MapComponent {
       shadowUrl: '../../assets/marker-shadow.png',
     }),
   };
+  polygonColor: string ='green'
 
   private initMap(): void {
     this.map = L.map('map').setView([52.54412, 13.352], 15);
@@ -37,7 +42,7 @@ export class MapComponent {
     // var marker = L.marker(e.latlng, this.icon)
     //   marker.addTo(this.map)
     // todo: any markers present remove it automatically
-    this.map.removeLayer(this.markerLayer)
+    this.map.removeLayer(this.markerLayer);
   }
 
   constructor(private restApi: RestAPIService) {}
@@ -50,48 +55,82 @@ export class MapComponent {
   }
 
   markParkingPlaces(): void {
-    this.restApi.getAllParkingSpaces().then((data) => {
+    this.restApi.getAllParkingSpaces().then((data:any) => {
       data.forEach((element: any) => {
         const parseElement = JSON.parse(element);
         console.log(parseElement);
-        //calculate area
-        // todo: add models to the remaining structure
-        this.restApi.getParkingSpaceAreaWithId(parseElement.id).then((areaData)=>{
-          // console.log(areaData)
-          return areaData;
-        }, (error) => {
-
-        }).then((area) => {
-
-          var coordinatesArray = parseElement.polygon.coordinates;
-          const arrayOfArrays = coordinatesArray.map((obj: any) => [
-            obj.y,
-            obj.x,
-          ]);
-          console.log(arrayOfArrays);
-          var polygon = L.polygon(arrayOfArrays)
-            .addTo(this.map)
-            .bindPopup(
-              'Id: ' + parseElement.id + '<br>' +
-              'Occupied: ' + JSON.stringify(parseElement.occupied) + ' <br>' +
-              'Area: ' + area + ' m&sup2;' + '<br>' +
-              ' <button>Edit</button></button>'
+        const coordinateArray = parseElement.polygon.coordinates.map((obj: any) => 
+          [obj.y, obj.x]
+        )
+        console.log("changing",coordinateArray )
+        this.parkingSpaceData.push(parseElement)
+        this.restApi
+          .getParkingSpaceAreaWithId(parseElement.id)
+          .then(
+            (areaData) => {
+              // console.log(areaData)
+              return areaData;
+            },
+            (error) => {}
+          )
+          .then((area) => {
+            var coordinatesArray = parseElement.polygon.coordinates;
+            const arrayOfArrays = coordinatesArray.map((obj: any) => [
+              obj.y,
+              obj.x,
+            ]);
+            // console.log(arrayOfArrays);
+            var polygon = L.polygon(arrayOfArrays)
+              .addTo(this.map)
+              .bindPopup(
+                'Id: ' +
+                  parseElement.id +
+                  '<br>' +
+                  'Occupied: ' +
+                  JSON.stringify(parseElement.occupied) +
+                  ' <br>' +
+                  'Area: ' +
+                  area +
+                  ' m&sup2;' +
+                  '<br>' +
+                  ' <button (click)="">Edit</button>'
             );
-          polygon.on('click', (event) => {
-            console.log(event + 'parse' + parseElement.id);
-            arrayOfArrays.forEach((elem: any) => {
-              var marker = L.marker(elem, this.icon).addTo(this.map);
-              this.markerLayer.push(marker)
+            if (parseElement.occupied == true) {
+              this.polygonColor = 'red' 
+            }
+            polygon.setStyle({fillColor: this.polygonColor,color: this.polygonColor});
+            polygon.on('click', (event) => {
+              console.log(event + 'parse' + parseElement.id);
+              polygon.bringToFront()
+              arrayOfArrays.forEach((elem: any) => {
+                this.createMarkerPersistentStorage(elem)
+                
+              });
             });
           });
+      })
+      // console.log(this.parkingSpaceData)
 
-
-
-
-        })
-
-
-      });
-    });
+    })
+      
   }
+  /**
+   * Event handler activated while changing the polygon shape
+   * @param latlng geolocation of marker on the map
+   */
+  createMarkerPersistentStorage(latlng: L.LatLng): void{
+    var marker = L.marker(latlng, this.markerIcon).addTo(this.map);
+    marker.on('drag', function (e: any) {
+      console.log("dragging marker")
+      console.log("marker position ",e.latlng)
+    })
+    
+    this.markerLayer.push(marker);
+    
+  }
+
+
+
+
+
 }
