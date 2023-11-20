@@ -21,7 +21,7 @@ public class DatabaseConnection {
     /**
      * ApplicationRunner bean that is used to run the initialization logic. This method is executed
      * at the start-up of the application. It initializes the database schema and loads GeoJSON data
-     * into the database.
+     * into the database. Lastly, area of each polygon is calculated and set.
      *
      * @param geospatialService the service bean that provides geospatial operations
      * @return an ApplicationRunner bean that performs database initialization and data loading
@@ -32,6 +32,7 @@ public class DatabaseConnection {
         return args -> {
             geospatialService.initializeDatabase();
             geospatialService.loadGeoJsonDataIntoDatabase();
+            geospatialService.calculateAndUpdateAreaColumn();
         };
     }
 
