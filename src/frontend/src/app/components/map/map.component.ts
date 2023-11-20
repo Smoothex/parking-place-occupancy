@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import * as L from 'leaflet';
 import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
+import 'leaflet-draw';
 
 @Component({
   selector: 'app-map',
@@ -10,12 +11,10 @@ import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
 export class MapComponent {
   private map: any;
   private markerLayer: any = [];
-  private parkingSpaceData: any=[];
-
-
+  private parkingSpaceData: any = [];
 
   markerIcon = {
-    draggable:true,
+    draggable: true,
     icon: L.icon({
       iconSize: [25, 41],
       iconAnchor: [12.5, 41],
@@ -24,7 +23,7 @@ export class MapComponent {
       shadowUrl: '../../assets/marker-shadow.png',
     }),
   };
-  polygonColor: string ='green'
+  polygonColor: string = 'green';
 
   private initMap(): void {
     this.map = L.map('map').setView([52.54412, 13.352], 15);
@@ -50,6 +49,7 @@ export class MapComponent {
   ngAfterViewInit(): void {
     this.initMap();
     setTimeout(() => {
+      this.editableLayer();
       this.markParkingPlaces();
     }, 500);
   }
@@ -73,12 +73,12 @@ export class MapComponent {
               obj.y,
               obj.x,
             ]);
-            parseElement.polygon.coordinates = arrayOfArrays
-            let obj = {...
-              parseElement,
+            parseElement.polygon.coordinates = arrayOfArrays;
+            let obj = {
+              ...parseElement,
               // "marker":arrayOfArrays
-            }
-            this.parkingSpaceData.push(obj)
+            };
+            this.parkingSpaceData.push(obj);
 
             var polygon = L.polygon(arrayOfArrays)
               .addTo(this.map)
@@ -94,45 +94,89 @@ export class MapComponent {
                   ' m&sup2;' +
                   '<br>' +
                   ' <button (click)="">Edit</button>'
-            );
+              );
             if (parseElement.occupied == true) {
-              this.polygonColor = 'red' 
+              this.polygonColor = 'red';
             }
-            polygon.setStyle({fillColor: this.polygonColor,color: this.polygonColor});
+            polygon.setStyle({
+              fillColor: this.polygonColor,
+              color: this.polygonColor,
+            });
             polygon.on('click', (event) => {
               console.log(event + 'parse' + parseElement.id);
-              polygon.bringToFront()
+              polygon.bringToFront();
               arrayOfArrays.forEach((elem: any) => {
-                // const marker = this.createMarkerPersistentStorage(elem)
-                // this.parkingSpaceData[0]
-                console.log(polygon)
-                
+                const marker = this.createMarkerPersistentStorage(elem);
+                //! add markers to the parking space data make sure of the order of adding marker
+                console.log(polygon);
               });
             });
           });
-      })
-      console.log(this.parkingSpaceData)
-
-    })
-      
+      });
+      console.log(this.parkingSpaceData);
+    });
   }
   /**
    * Event handler activated while changing the polygon shape
    * @param latlng geolocation of marker on the map
    */
-  createMarkerPersistentStorage(latlng: L.LatLng): L.Marker{
+  createMarkerPersistentStorage(latlng: L.LatLng): L.Marker {
     var marker = L.marker(latlng, this.markerIcon).addTo(this.map);
     marker.on('drag', function (e: any) {
-      console.log("dragging marker")
-      console.log("marker position ",e.latlng)
-    })
-    return marker
+      console.log('dragging marker');
+      console.log('marker position ', e.latlng);
+    });
+    return marker;
     // this.markerLayer.push(marker);
-    
   }
 
+  editableLayer() {
+    var editableLayers = new L.FeatureGroup();
+    this.map.addLayer(editableLayers);
 
+    var MyCustomMarker = L.Icon.extend({
+      options: {
+        shadowUrl: null,
+        iconAnchor: new L.Point(12, 12),
+        iconSize: new L.Point(24, 24),
+        iconUrl: '../../assets/marker-icon.png',
+      },
+    });
+    var options: any = {
+      position: 'topright',
+      draw: {
+        polyline: false,
+        polygon: {
+          allowIntersection: false, // Restricts shapes to simple polygons
+          drawError: {
+            color: '#e1e100', // Color the shape will turn when intersects
+            message: "<strong>Oh snap!<strong> you can't draw that!", // Message that will show when intersect
+          },
+          shapeOptions: {
+            color: '#bada55',
+          },
+        },
+        circle: false, // Turns off this drawing tool
+        rectangle: false,
+        circlemarker: false,
+      },
+      edit: {
+        featureGroup: editableLayers, //REQUIRED!!
+        remove: false,
+      },
+    };
+    var drawControl = new L.Control.Draw(options);
+    this.map.addControl(drawControl);
 
+    this.map.on(L.Draw.Event.CREATED, function (e: any) {
+      var type = e.layerType,
+        layer = e.layer;
 
+      if (type === 'marker') {
+        layer.bindPopup('A popup!');
+      }
 
+      editableLayers.addLayer(layer);
+    });
+  }
 }
