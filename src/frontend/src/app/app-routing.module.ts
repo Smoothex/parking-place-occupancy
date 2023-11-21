@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes, PreloadAllModules } from '@angular/router';
 import { MapComponent } from './components/map/map.component';
+import { PlaygroundComponent } from './components/playground/playground.component';
 
 
 
@@ -13,7 +14,8 @@ const routes: Routes = [
     redirectTo: "map",
     pathMatch: "full",
   }, 
-  { path: 'map', component: MapComponent }
+  { path: 'map', component: MapComponent },
+  { path: 'play', component: PlaygroundComponent }, 
   /* {
     path: "map",
     loadChildren: () =>

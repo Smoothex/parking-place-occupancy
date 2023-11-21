@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import * as L from 'leaflet';
 import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
 import 'leaflet-draw';
-
+import * as turf from '@turf/turf';
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
@@ -12,6 +12,7 @@ export class MapComponent {
   private map: any;
   private markerLayer: any = [];
   private parkingSpaceData: any = [];
+  public tolerance = 0.00000005
 
   markerIcon = {
     draggable: true,
@@ -21,6 +22,16 @@ export class MapComponent {
       // specify the path here
       iconUrl: '../../assets/marker-icon.png',
       shadowUrl: '../../assets/marker-shadow.png',
+    }),
+  };
+
+  RedmarkerIcon = {
+    draggable: true,
+    icon: L.icon({
+      iconSize: [25, 41],
+      iconAnchor: [12.5, 41],
+      // specify the path here
+      iconUrl: '../../assets/red.png',
     }),
   };
   polygonColor: string = 'green';
@@ -105,11 +116,21 @@ export class MapComponent {
             polygon.on('click', (event) => {
               console.log(event + 'parse' + parseElement.id);
               polygon.bringToFront();
+              console.log("orignal", arrayOfArrays)
+              const simple = this.simplifyGeoPolygon(arrayOfArrays)
+              console.log("new", simple)
+              console.log("starting minimal version of markers ")
+              this.addPolygon(arrayOfArrays)
               arrayOfArrays.forEach((elem: any) => {
                 const marker = this.createMarkerPersistentStorage(elem);
                 //! add markers to the parking space data make sure of the order of adding marker
-                console.log(polygon);
+                // console.log(polygon);
               });
+              simple.forEach((elem: any) => {
+                const mark= this.createMarkerPersistentStorage(elem, this.RedmarkerIcon);
+                
+              });
+              
             });
           });
       });
@@ -120,8 +141,8 @@ export class MapComponent {
    * Event handler activated while changing the polygon shape
    * @param latlng geolocation of marker on the map
    */
-  createMarkerPersistentStorage(latlng: L.LatLng): L.Marker {
-    var marker = L.marker(latlng, this.markerIcon).addTo(this.map);
+  createMarkerPersistentStorage(latlng: L.LatLng,markerIcon: any = this.markerIcon): L.Marker {
+    var marker = L.marker(latlng, markerIcon).addTo(this.map);
     marker.on('drag', function (e: any) {
       console.log('dragging marker');
       console.log('marker position ', e.latlng);
@@ -130,6 +151,27 @@ export class MapComponent {
     // this.markerLayer.push(marker);
   }
 
+  addPolygon(originalCoords:any[]) {
+  
+
+
+    // Simplify the polygon using turf.js
+    const originalGeoJSON = turf.polygon([originalCoords]);
+    const tolerance = this.tolerance // Adjust the tolerance as needed
+    const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
+    const simplifiedCoords:any = simplifiedGeoJSON.geometry.coordinates[0];
+
+    const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
+    console.log("Orignal array",originalCoords)
+    console.log("New array",simplifiedCoords)
+  }
+  simplifyGeoPolygon(originalCoords:any) {
+    const originalGeoJSON = turf.polygon([originalCoords]);
+    const tolerance = this.tolerance; // Adjust the tolerance as needed
+    const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
+    const simplifiedCoords:any = simplifiedGeoJSON.geometry.coordinates[0];
+    return simplifiedCoords
+  }
   editableLayer() {
     var editableLayers = new L.FeatureGroup();
     this.map.addLayer(editableLayers);
@@ -156,6 +198,9 @@ export class MapComponent {
             color: '#bada55',
           },
         },
+        marker: {
+          icon: new MyCustomMarker()
+      },
         circle: false, // Turns off this drawing tool
         rectangle: false,
         circlemarker: false,
