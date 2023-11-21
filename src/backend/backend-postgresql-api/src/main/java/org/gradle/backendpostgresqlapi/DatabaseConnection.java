@@ -32,8 +32,11 @@ public class DatabaseConnection {
     ApplicationRunner initializer(GeospatialService geospatialService) {
         return args -> {
             geospatialService.initializeDatabase();
-            geospatialService.loadGeoJsonDataIntoDatabase();
-            geospatialService.calculateAndUpdateAreaColumn();
+            if (inputDataFormat.equals("geojson")) {
+                geospatialService.loadGeoJsonDataIntoDatabase();
+            } else {
+              geospatialService.loadCsvDataIntoDatabase();  
+            }
         };
     }
 

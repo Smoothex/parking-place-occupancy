@@ -63,7 +63,6 @@ public class CsvHandler {
                 parkingSpace.setOccupied(false); // Assuming default is always false since it's not in CSV
                 parkingSpace.setNumberOfParkingSpaces(Integer.parseInt(nextRecord[2]));
                 parkingSpace.setPosition(nextRecord[4]);
-                
                 parkingSpaces.add(parkingSpace);
                 log.debug("Added parking space with ID: {}", nextRecord[1]); // Assuming nextRecord[1] contains the ID
             }
@@ -83,5 +82,5 @@ public class CsvHandler {
             throw new IllegalArgumentException("Error parsing WKT to Geometry", e);
         }
     }
-    
+
 }
