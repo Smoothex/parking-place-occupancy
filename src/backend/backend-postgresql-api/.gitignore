@@ -48,4 +48,3 @@ replay_pid*
 
 # Spatial data files
 *.geojson
-*.csv

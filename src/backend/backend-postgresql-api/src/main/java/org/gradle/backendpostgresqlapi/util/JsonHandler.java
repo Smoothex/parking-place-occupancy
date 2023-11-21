@@ -133,8 +133,6 @@ public class JsonHandler {
             parkingSpaceJson.set("polygon", mapper.readTree(polygonJson));
             parkingSpaceJson.put("occupied", parkingSpace.isOccupied());
             parkingSpaceJson.put("area", parkingSpace.getArea());
-            parkingSpaceJson.put("numberOfParkingSpaces", parkingSpace.getNumberOfParkingSpaces());
-            parkingSpaceJson.put("position", parkingSpace.getPosition());
 
             // Convert the whole object to a JSON string
             return mapper.writeValueAsString(parkingSpaceJson);

@@ -14,15 +14,7 @@ import org.locationtech.jts.geom.Polygon;
 @Transactional
 public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
 
-    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (" +
-                                "ps_id SERIAL PRIMARY KEY, " +
-                                "ps_coordinates GEOGRAPHY(POLYGON, 4326), " +
-                                "ps_occupied BOOLEAN DEFAULT FALSE, " +
-                                "ps_area DOUBLE PRECISION, " +
-                                "ps_number_of_parking_spaces INTEGER, " +
-                                "ps_position VARCHAR(255)" +   // think about ading an ENUM of some sort for the position
-                            ")";
-
+    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (ps_id SERIAL PRIMARY KEY, ps_coordinates GEOGRAPHY(POLYGON, 4326), ps_occupied BOOLEAN DEFAULT 'f', ps_area DOUBLE PRECISION)";
     String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON parking_spaces USING GIST (ps_coordinates)";
     String UPDATE_AREA_SQL = "UPDATE parking_spaces SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_area = 0.0";
 
@@ -43,11 +35,6 @@ public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
         ParkingSpace parkingSpace = new ParkingSpace();
         parkingSpace.setPolygon(polygon);
         parkingSpace.setOccupied(false);
-        this.save(parkingSpace);
-    }
-
-    @Modifying
-    default void insertParkingSpaceFromCSV(ParkingSpace parkingSpace) {
         this.save(parkingSpace);
     }
 
