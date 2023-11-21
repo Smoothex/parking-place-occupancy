@@ -14,17 +14,9 @@ import org.locationtech.jts.geom.Polygon;
 @Transactional
 public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
 
-    //String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (ps_id SERIAL PRIMARY KEY, ps_coordinates GEOGRAPHY(POLYGON, 4326), ps_occupied BOOLEAN DEFAULT 'f')";
-    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (" +
-                                "ps_id SERIAL PRIMARY KEY, " +
-                                "ps_coordinates GEOGRAPHY(POLYGON, 4326), " +
-                                "ps_occupied BOOLEAN DEFAULT FALSE, " +
-                                "area DOUBLE PRECISION, " + // Assuming 'area' is a numeric field.
-                                "number_of_parking_spaces INTEGER, " + // Assuming 'number_of_parking_spaces' is an integer.
-                                "position VARCHAR(255)" + // Assuming 'position' is a textual description.
-                              ")";
-
+    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (ps_id SERIAL PRIMARY KEY, ps_coordinates GEOGRAPHY(POLYGON, 4326), ps_occupied BOOLEAN DEFAULT 'f', ps_area DOUBLE PRECISION)";
     String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON parking_spaces USING GIST (ps_coordinates)";
+    String UPDATE_AREA_SQL = "UPDATE parking_spaces SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_area = 0.0";
 
     @Modifying
     @Query(value = CREATE_TABLE_SQL, nativeQuery = true)
@@ -33,6 +25,10 @@ public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
     @Modifying
     @Query(value = CREATE_INDEX_SQL, nativeQuery = true)
     void createIndex();
+
+    @Modifying
+    @Query(value = UPDATE_AREA_SQL, nativeQuery = true)
+    void updateAreaColumn();
 
     @Modifying
     default void insertParkingSpace(Polygon polygon) {
@@ -48,5 +44,4 @@ public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
     }
 
     List<ParkingSpace> findByOccupied(boolean occupied);
-
 }
