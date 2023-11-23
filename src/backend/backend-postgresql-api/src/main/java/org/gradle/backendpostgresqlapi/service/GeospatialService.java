@@ -104,6 +104,10 @@ public class GeospatialService {
         log.info("Area column values were calculated and set accordingly.");
     }
 
+    public List<ParkingSpace> getAllParkingSpaces() {
+        return geospatialRepo.findAll();
+    }    
+
     public List<String> getAllParkingSpacesAsJson() {
         List<ParkingSpace> parkingSpaces = geospatialRepo.findAll();
         return parkingSpaces.stream()

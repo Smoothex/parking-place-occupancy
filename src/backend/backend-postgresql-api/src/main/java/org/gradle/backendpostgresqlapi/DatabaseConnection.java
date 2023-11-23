@@ -1,6 +1,8 @@
 package org.gradle.backendpostgresqlapi;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.service.GeospatialService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -52,8 +54,8 @@ public class DatabaseConnection {
     @Order(2)
     public ApplicationRunner printParkingSpaces(GeospatialService geospatialService) {
         return args -> {
-            List<String> parkingSpaces = geospatialService.getAllParkingSpacesAsJson();
-            parkingSpaces.forEach(System.out::println);
+            List<ParkingSpace> parkingSpaces = geospatialService.getAllParkingSpaces();
+            parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
         };
     }
 }

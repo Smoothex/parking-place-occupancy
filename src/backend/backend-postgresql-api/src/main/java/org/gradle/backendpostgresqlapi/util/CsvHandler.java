@@ -6,6 +6,7 @@ import com.opencsv.exceptions.CsvValidationException;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.gradle.backendpostgresqlapi.entity.ParkingPositionEnum;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -62,7 +63,8 @@ public class CsvHandler {
 
                 parkingSpace.setOccupied(false); // Assuming default is always false since it's not in CSV
                 parkingSpace.setNumberOfParkingSpaces(Integer.parseInt(nextRecord[2]));
-                parkingSpace.setPosition(nextRecord[4]);
+                parkingSpace.setPosition(ParkingPositionEnum.fromString(nextRecord[4]));
+
                 parkingSpaces.add(parkingSpace);
                 log.debug("Added parking space with ID: {}", nextRecord[1]); // Assuming nextRecord[1] contains the ID
             }
