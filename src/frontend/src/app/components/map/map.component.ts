@@ -11,8 +11,16 @@ import * as turf from '@turf/turf';
 export class MapComponent {
   private map: any;
   private markerLayer: any = [];
+  /**
+   * Centralized local data storage which will help in keeping updated and edited polygons 
+   * ! Do not delete or change any line of code if it is implemented in the code
+   */
   private parkingSpaceData: any = [];
-  public tolerance = 0.00000005
+  /**
+   * !This value should not be changed as it has been optimized for showing better polygons with less coordinates
+   */
+  public tolerance = 0.0000005
+  public debug:boolean = true;
 
   markerIcon = {
     draggable: true,
@@ -53,6 +61,21 @@ export class MapComponent {
     //   marker.addTo(this.map)
     // todo: any markers present remove it automatically
     this.map.removeLayer(this.markerLayer);
+    if (this.debug) {
+      console.log("Markers present before:", this.markerLayer)
+    }
+    if (this.markerLayer) {
+      this.markerLayer.forEach((singleMarker: L.Marker) => {
+        this.map.removeLayer(singleMarker) 
+      });
+      setTimeout(() => {
+        this.markerLayer = []
+        if (this.debug) {
+          console.log("Markers present after:", this.markerLayer)
+        }
+      }, 300);
+
+    }
   }
 
   constructor(private restApi: RestAPIService) {}
@@ -116,20 +139,18 @@ export class MapComponent {
             polygon.on('click', (event) => {
               console.log(event + 'parse' + parseElement.id);
               polygon.bringToFront();
-              console.log("orignal", arrayOfArrays)
               const simple = this.simplifyGeoPolygon(arrayOfArrays)
-              console.log("new", simple)
-              console.log("starting minimal version of markers ")
-              this.addPolygon(arrayOfArrays)
-              arrayOfArrays.forEach((elem: any) => {
-                const marker = this.createMarkerPersistentStorage(elem);
-                //! add markers to the parking space data make sure of the order of adding marker
-                // console.log(polygon);
-              });
               simple.forEach((elem: any) => {
-                const mark= this.createMarkerPersistentStorage(elem, this.RedmarkerIcon);
+                const mark= this.createMarkerPersistentStorage(elem);
                 
               });
+              if (this.debug) {
+                console.log("orignal", arrayOfArrays)
+                this.addPolygon(arrayOfArrays)
+                console.log("new", simple)
+                console.log("added marker on the layer", this.markerLayer)
+                
+              }
               
             });
           });
@@ -147,23 +168,25 @@ export class MapComponent {
       console.log('dragging marker');
       console.log('marker position ', e.latlng);
     });
+    this.markerLayer.push(marker);
     return marker;
-    // this.markerLayer.push(marker);
   }
-
+/**
+ * This method functionality is only for debigging purposes, which uses an external library to create and draw the polygon 
+ * @param originalCoords coordinates for polygon
+ */
   addPolygon(originalCoords:any[]) {
-  
-
-
     // Simplify the polygon using turf.js
     const originalGeoJSON = turf.polygon([originalCoords]);
     const tolerance = this.tolerance // Adjust the tolerance as needed
     const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
     const simplifiedCoords:any = simplifiedGeoJSON.geometry.coordinates[0];
-
-    const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
-    console.log("Orignal array",originalCoords)
-    console.log("New array",simplifiedCoords)
+    if (this.debug) {
+      const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
+      console.log("Orignal array",originalCoords)
+      console.log("New array",simplifiedCoords)
+      
+    }
   }
   simplifyGeoPolygon(originalCoords:any) {
     const originalGeoJSON = turf.polygon([originalCoords]);
@@ -172,6 +195,24 @@ export class MapComponent {
     const simplifiedCoords:any = simplifiedGeoJSON.geometry.coordinates[0];
     return simplifiedCoords
   }
+  // edit polygon 
+  /**
+   * TODO: remove markers being placed on the same spot 
+   * TODO: find the coordinate in the real polygon and edit/replace them 
+   * TODO: update the data value array
+   * TODO: re-create only the particular array
+   * TODO: add checks for not creating an impossible polygon 
+   */
+
+
+  editPolygon() {
+    
+  }
+  
+
+
+
+  // ! Not that important but might be usefull later on
   editableLayer() {
     var editableLayers = new L.FeatureGroup();
     this.map.addLayer(editableLayers);
