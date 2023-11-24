@@ -10,17 +10,23 @@ import * as turf from '@turf/turf';
 })
 export class MapComponent {
   private map: any;
-  private markerLayer: any = [];
   /**
-   * Centralized local data storage which will help in keeping updated and edited polygons 
+   * consist of all the markers present in current layer of the map
+   */
+  private markerLayer: any = [];
+  private activePolygonInteractionLayer: any = undefined;
+
+  /**
+   * Centralized local data storage which will help in keeping track of updated and edited polygons
    * ! Do not delete or change any line of code if it is implemented in the code
    */
   private parkingSpaceData: any = [];
   /**
    * !This value should not be changed as it has been optimized for showing better polygons with less coordinates
    */
-  public tolerance = 0.0000005
-  public debug:boolean = true;
+  public tolerance = 0.0000005;
+
+  public debug: boolean = true;
 
   markerIcon = {
     draggable: true,
@@ -52,29 +58,33 @@ export class MapComponent {
         '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(this.map);
 
-    this.map.on('click', this.giveCoordinate.bind(this));
+    this.map.on('click', this.mapClickInteraction.bind(this));
   }
 
-  giveCoordinate(e: any) {
+  mapClickInteraction(e: any) {
     console.log('clicked on map', e.latlng);
-    // var marker = L.marker(e.latlng, this.icon)
-    //   marker.addTo(this.map)
-    // todo: any markers present remove it automatically
-    this.map.removeLayer(this.markerLayer);
     if (this.debug) {
-      console.log("Markers present before:", this.markerLayer)
+      console.log('Markers present before:', this.markerLayer);
     }
     if (this.markerLayer) {
       this.markerLayer.forEach((singleMarker: L.Marker) => {
-        this.map.removeLayer(singleMarker) 
+        this.map.removeLayer(singleMarker);
       });
       setTimeout(() => {
-        this.markerLayer = []
+        this.markerLayer = [];
         if (this.debug) {
-          console.log("Markers present after:", this.markerLayer)
+          console.log('Markers present after:', this.markerLayer);
         }
       }, 300);
-
+    }
+    if (this.activePolygonInteractionLayer != undefined) {
+      console.log(this.activePolygonInteractionLayer);
+      //TODO: another of clause saying changes will be saved or deleted after clicking ok
+      alert('The last edited polygon will be edited permanently');
+      this.editPolygon(this.activePolygonInteractionLayer);
+      this.activePolygonInteractionLayer.target.editing.disable();
+      this.activePolygonInteractionLayer = undefined;
+      // TODO: add editing check here
     }
   }
 
@@ -87,6 +97,29 @@ export class MapComponent {
       this.markParkingPlaces();
     }, 500);
   }
+  highlightFeature(e: any) {
+    var layer = e.target;
+
+    layer.setStyle({
+      fillColor: 'blue', // Change this to the color you want on mouseover
+      weight: 2,
+      opacity: 1,
+    });
+  }
+
+  // Function to reset polygon color on mouseout
+  resetFeature(e: any) {
+    var layer = e.target;
+
+    layer.setStyle({
+      fillColor: 'green',
+      color: 'green', // Change this to the original color
+      weight: 2,
+      opacity: 1,
+    });
+  }
+
+  // Event listeners for mouseover and mouseout
 
   markParkingPlaces(): void {
     this.restApi.getAllParkingSpaces().then((data: any) => {
@@ -108,13 +141,11 @@ export class MapComponent {
               obj.x,
             ]);
             parseElement.polygon.coordinates = arrayOfArrays;
-            let obj = {
-              ...parseElement,
-              // "marker":arrayOfArrays
-            };
-            this.parkingSpaceData.push(obj);
 
-            var polygon = L.polygon(arrayOfArrays)
+            // TODO: add another property for all the polygon
+            // TODO: polygon.sourceTarget leafert _id will be used for mapping
+            const simple = this.simplifyGeoPolygon(arrayOfArrays);
+            var polygon = L.polygon(simple)
               .addTo(this.map)
               .bindPopup(
                 'Id: ' +
@@ -127,7 +158,7 @@ export class MapComponent {
                   area +
                   ' m&sup2;' +
                   '<br>' +
-                  ' <button (click)="">Edit</button>'
+                  ' <button (click)="`${enable}`">Edit</button>'
               );
             if (parseElement.occupied == true) {
               this.polygonColor = 'red';
@@ -136,33 +167,54 @@ export class MapComponent {
               fillColor: this.polygonColor,
               color: this.polygonColor,
             });
+            polygon.on({
+              mouseover: this.highlightFeature,
+              mouseout: this.resetFeature,
+            });
             polygon.on('click', (event) => {
+              if (this.activePolygonInteractionLayer != undefined) {
+                this.mapClickInteraction(event);
+              } else {
+                this.activePolygonInteractionLayer = event;
+              }
               console.log(event + 'parse' + parseElement.id);
               polygon.bringToFront();
-              const simple = this.simplifyGeoPolygon(arrayOfArrays)
-              simple.forEach((elem: any) => {
-                const mark= this.createMarkerPersistentStorage(elem);
-                
-              });
+              console.log(event);
+
+              event.target.editing.enable();
+
+              const simple = this.simplifyGeoPolygon(arrayOfArrays);
+              // simple.forEach((elem: any) => {
+              //   const mark = this.createMarkerPersistentStorage(elem);
+              // });
               if (this.debug) {
-                console.log("orignal", arrayOfArrays)
-                this.addPolygon(arrayOfArrays)
-                console.log("new", simple)
-                console.log("added marker on the layer", this.markerLayer)
-                
+                console.log('orignal', arrayOfArrays);
+                this.addPolygon(arrayOfArrays);
+                console.log('new', simple);
+                console.log('added marker on the layer', this.markerLayer);
               }
-              
             });
+            // adding historical data for the polygons
+            // properties which could be edited would be stored here
+            let obj = {
+              ...parseElement,
+              polygon_layer: polygon,
+              new_polygon_layer: polygon,
+            };
+            this.parkingSpaceData.push(obj);
           });
       });
-      console.log(this.parkingSpaceData);
+      console.log('parking space data ', this.parkingSpaceData);
     });
   }
   /**
    * Event handler activated while changing the polygon shape
    * @param latlng geolocation of marker on the map
    */
-  createMarkerPersistentStorage(latlng: L.LatLng,markerIcon: any = this.markerIcon): L.Marker {
+  createMarkerPersistentStorage(
+    latlng: L.LatLng,
+    markerIcon: any = this.markerIcon
+  ): L.Marker {
     var marker = L.marker(latlng, markerIcon).addTo(this.map);
     marker.on('drag', function (e: any) {
       console.log('dragging marker');
@@ -171,46 +223,41 @@ export class MapComponent {
     this.markerLayer.push(marker);
     return marker;
   }
-/**
- * This method functionality is only for debigging purposes, which uses an external library to create and draw the polygon 
- * @param originalCoords coordinates for polygon
- */
-  addPolygon(originalCoords:any[]) {
+  /**
+   * This method functionality is only for debigging purposes, which uses an external library to create and draw the polygon
+   * @param originalCoords coordinates for polygon
+   */
+  addPolygon(originalCoords: any[]) {
     // Simplify the polygon using turf.js
-    const originalGeoJSON = turf.polygon([originalCoords]);
-    const tolerance = this.tolerance // Adjust the tolerance as needed
-    const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
-    const simplifiedCoords:any = simplifiedGeoJSON.geometry.coordinates[0];
-    if (this.debug) {
-      const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
-      console.log("Orignal array",originalCoords)
-      console.log("New array",simplifiedCoords)
-      
-    }
-  }
-  simplifyGeoPolygon(originalCoords:any) {
     const originalGeoJSON = turf.polygon([originalCoords]);
     const tolerance = this.tolerance; // Adjust the tolerance as needed
     const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
-    const simplifiedCoords:any = simplifiedGeoJSON.geometry.coordinates[0];
-    return simplifiedCoords
+    const simplifiedCoords: any = simplifiedGeoJSON.geometry.coordinates[0];
+    if (this.debug) {
+      const simplifiedPolygon = L.polygon(simplifiedCoords, {
+        color: 'blue',
+      }).addTo(this.map);
+      console.log('Orignal array', originalCoords);
+      console.log('New array', simplifiedCoords);
+    }
   }
-  // edit polygon 
-  /**
-   * TODO: remove markers being placed on the same spot 
-   * TODO: find the coordinate in the real polygon and edit/replace them 
-   * TODO: update the data value array
-   * TODO: re-create only the particular array
-   * TODO: add checks for not creating an impossible polygon 
-   */
-
-
-  editPolygon() {
-    
+  simplifyGeoPolygon(originalCoords: any) {
+    const originalGeoJSON = turf.polygon([originalCoords]);
+    const tolerance = this.tolerance; // Adjust the tolerance as needed
+    const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
+    const simplifiedCoords: any = simplifiedGeoJSON.geometry.coordinates[0];
+    return simplifiedCoords;
   }
-  
 
-
+  editPolygon(polygonEvent: any) {
+    /*
+     * TODO: remove markers being placed on the same spot
+     * TODO: find the coordinate in the real polygon and edit/replace them
+     * TODO: update the data value array
+     * TODO: re-create only the particular array
+     * TODO: add checks for not creating an impossible polygon
+     */
+  }
 
   // ! Not that important but might be usefull later on
   editableLayer() {
@@ -236,12 +283,12 @@ export class MapComponent {
             message: "<strong>Oh snap!<strong> you can't draw that!", // Message that will show when intersect
           },
           shapeOptions: {
-            color: '#bada55',
+            color: 'blue',
           },
         },
         marker: {
-          icon: new MyCustomMarker()
-      },
+          icon: new MyCustomMarker(),
+        },
         circle: false, // Turns off this drawing tool
         rectangle: false,
         circlemarker: false,

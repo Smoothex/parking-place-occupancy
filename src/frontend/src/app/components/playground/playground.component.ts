@@ -14,6 +14,8 @@ export class PlaygroundComponent {
   private map: any;
   private markerLayer: any = [];
   private parkingSpaceData: any = [];
+  editing:boolean = false;
+  drawnItems:any
 
   markerIcon = {
     draggable: true,
@@ -36,8 +38,29 @@ export class PlaygroundComponent {
     }).addTo(this.map);
 
     this.map.on('click', this.giveCoordinate.bind(this));
+
+    // this.map.on('click', this.polyEditing.bind(this));
+    
+    // this.map.on('draw:created', this.drwn.bind(this))
+
+
   }
 
+  drwn(e: any) {
+    this.editing = false;
+    var type = e.layerType,
+        layer = e.layer;
+    this.drawnItems.addLayer(layer);
+  }
+  polyEditing(e:any) {
+    if(!this.editing){ // do not start multiple "edit sessions"
+      const editing = true;
+      var polyEdit = new L.Draw.Polygon(this.map);
+      polyEdit.enable();
+      polyEdit.addVertex(e.latlng);
+    }
+    
+  }
   giveCoordinate(e: any) {
     console.log('clicked on map', e.latlng);
     // var marker = L.marker(e.latlng, this.icon)
@@ -163,11 +186,16 @@ export class PlaygroundComponent {
       
     });
 
-    const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'red' }).addTo(this.map);
+    const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
+    simplifiedPolygon.on('click', this.editing2.bind(this))
     console.log(originalCoords)
     console.log(simplifiedCoords)
   }
-   
+  editing2(e: any) {
+    console.log("polygonis", e)
+    e.target.editing.enable();
+     
+   }
   createMarkerPersistentStorage(latlng: L.LatLng): L.Marker {
     var marker = L.marker(latlng, this.markerIcon).addTo(this.map);
     marker.on('drag', function (e: any) {
