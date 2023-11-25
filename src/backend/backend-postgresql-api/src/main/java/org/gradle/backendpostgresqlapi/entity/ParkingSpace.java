@@ -3,6 +3,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.locationtech.jts.geom.Polygon;
+
+import java.util.Locale;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
@@ -20,17 +22,17 @@ public class ParkingSpace {
     @Column(name = "ps_coordinates", nullable = false)
     private Polygon polygon;
 
-    @Column(name = "ps_occupied", nullable = true)
+    @Column(name = "ps_occupied")
     private boolean occupied;
 
     @Column(name = "ps_area")
     private double area;
 
-    @Column(name = "ps_numberOfParkingSpaces", nullable = true)
-    private Integer numberOfParkingSpaces;
+    @Column(name = "ps_capacity")
+    private Integer capacity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ps_position", nullable = true)
+    @Column(name = "ps_position")
     private ParkingPositionEnum position;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
@@ -43,8 +45,8 @@ public class ParkingSpace {
                     ", coordinates=" + coordinatesToString(polygon) +
                     ", isOccupied=" + occupied +
                     ", area=" + String.format("%.4f", area) +
-                    ", numberOfParkingSpaces=" + numberOfParkingSpaces +
-                    ", position=" + (position != null ? position.toString() : "null") +
+                    ", capacity=" + capacity +
+                    ", position=" + (position != null ? position.getDisplayName() : "null") +
                 "}";
     }
 
@@ -52,7 +54,7 @@ public class ParkingSpace {
         if (polygon == null) return "null";
     
         return Stream.of(polygon.getCoordinates())
-                     .map(coordinate -> String.format("(%.4f, %.4f)", coordinate.x, coordinate.y))
+                     .map(coordinate -> String.format(Locale.US,"(%.4f, %.4f)", coordinate.x, coordinate.y))
                      .collect(Collectors.joining(", "));
     }
 }
