@@ -4,6 +4,7 @@ import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,7 @@ public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
                                 "ps_occupied BOOLEAN DEFAULT FALSE, " +
                                 "ps_area DOUBLE PRECISION, " +
                                 "ps_number_of_parking_spaces INTEGER, " +
-                                "ps_position VARCHAR(255)" +   // think about ading an ENUM of some sort for the position
+                                "ps_position VARCHAR(255)" +   // in Java program presented as enum, but still german words in postgres
                             ")";
 
     String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON parking_spaces USING GIST (ps_coordinates)";

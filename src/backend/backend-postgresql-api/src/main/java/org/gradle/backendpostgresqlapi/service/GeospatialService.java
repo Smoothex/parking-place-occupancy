@@ -9,7 +9,6 @@ import org.gradle.backendpostgresqlapi.util.JsonHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-import org.springframework.core.io.ResourceLoader;
 
 import com.opencsv.exceptions.CsvValidationException;
 import java.io.IOException;
@@ -31,12 +30,13 @@ import org.springframework.util.StringUtils;
 public class GeospatialService {
 
     private static final String CSV_FILE = "classpath:second_data.csv";
-    
 
+    private final CsvHandler csvHandler;
     private final ResourceLoader resourceLoader;
-
-    // Constructor injection is a good practice for mandatory dependencies
-    public GeospatialService(ResourceLoader resourceLoader) {
+    
+    @Autowired
+    public GeospatialService(CsvHandler csvHandler, ResourceLoader resourceLoader) {
+        this.csvHandler = csvHandler;
         this.resourceLoader = resourceLoader;
     }
 
@@ -81,7 +81,7 @@ public class GeospatialService {
         }
     }
 
-        /**
+    /**
      * Loads data from a CSV file into the database. The method
      * reads a CSV file from the filesystem, parses it, and then
      * inserts the data into the `parking_spaces` table.
@@ -91,7 +91,7 @@ public class GeospatialService {
      */
     public void loadCsvDataIntoDatabase() throws IOException, CsvValidationException {
         log.debug("Loading CSV data into the database...");
-        List<ParkingSpace> csvParkingSpaces = CsvHandler.getCsvDataFromFile(resourceLoader, CSV_FILE);
+        List<ParkingSpace> csvParkingSpaces = csvHandler.getCsvDataFromFile(resourceLoader, CSV_FILE);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
             geospatialRepo.insertParkingSpaceFromCSV(parkingSpace);
         }

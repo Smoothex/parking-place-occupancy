@@ -5,7 +5,6 @@ import lombok.Setter;
 import org.locationtech.jts.geom.Polygon;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
-import org.gradle.backendpostgresqlapi.entity.ParkingPositionEnum;
 
 @Getter
 @Setter

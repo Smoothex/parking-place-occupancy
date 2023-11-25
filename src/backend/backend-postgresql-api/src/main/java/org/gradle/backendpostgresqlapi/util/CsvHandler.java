@@ -15,6 +15,7 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.stereotype.Component;
 
 import java.io.Reader;
 import java.io.InputStreamReader;
@@ -26,11 +27,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
+@Component
 public class CsvHandler {
-
+    
     private final static WKTReader wktReader = new WKTReader();
 
-    public static List<ParkingSpace> getCsvDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException, CsvValidationException {
+    public List<ParkingSpace> getCsvDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException, CsvValidationException {
         List<ParkingSpace> parkingSpaces = new ArrayList<>();
         log.debug("Reading CSV data from file: {}", filePath);
 
@@ -49,13 +51,9 @@ public class CsvHandler {
                 if (geometry instanceof Polygon) {
                     parkingSpace.setPolygon((Polygon) geometry);
                 } else if (geometry instanceof MultiPolygon) {
-                    // Handle the case where the geometry is a MultiPolygon.
-                    // You might want to convert it to a Polygon, take the first Polygon, or handle it according to your application logic.
                     MultiPolygon multiPolygon = (MultiPolygon) geometry;
-                    // For example, just take the first polygon (if that makes sense for your application)
                     if (multiPolygon.getNumGeometries() > 0) {
                         parkingSpace.setPolygon((Polygon) multiPolygon.getGeometryN(0));
-
                     }
                 } else {
                     log.error("Geometry is not a Polygon or MultiPolygon: {}", geometry.toText());
@@ -66,7 +64,7 @@ public class CsvHandler {
                 parkingSpace.setPosition(ParkingPositionEnum.fromString(nextRecord[4]));
 
                 parkingSpaces.add(parkingSpace);
-                log.debug("Added parking space with ID: {}", nextRecord[1]); // Assuming nextRecord[1] contains the ID
+                log.debug("Added parking space with ID: {}", nextRecord[1]);
             }
         } catch (IOException e) {
             log.error("Error reading CSV file at path: {}", filePath, e);
