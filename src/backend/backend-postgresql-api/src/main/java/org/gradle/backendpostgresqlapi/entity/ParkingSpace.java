@@ -2,6 +2,7 @@ package org.gradle.backendpostgresqlapi.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.Locale;
@@ -33,7 +34,7 @@ public class ParkingSpace {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "ps_position")
-    private ParkingPositionEnum position;
+    private ParkingPosition position;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
     public ParkingSpace() {}

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import org.gradle.backendpostgresqlapi.entity.ParkingPositionEnum;
+import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Polygon;
@@ -137,7 +137,7 @@ public class JsonHandler {
             parkingSpaceJson.put("area", parkingSpace.getArea());
             parkingSpaceJson.put("capacity", parkingSpace.getCapacity());
             // handle the case where "position" is not set in data set
-            ParkingPositionEnum position = parkingSpace.getPosition();
+            ParkingPosition position = parkingSpace.getPosition();
             parkingSpaceJson.put("position", position != null ? position.getDisplayName() : null);
 
             // Convert the whole object to a JSON string
