@@ -15,7 +15,6 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.stereotype.Component;
 
 import java.io.Reader;
 import java.io.InputStreamReader;
@@ -27,12 +26,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@Component
 public class CsvHandler {
     
     private final static WKTReader wktReader = new WKTReader();
 
-    public List<ParkingSpace> getCsvDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException, CsvValidationException {
+    public static List<ParkingSpace> getCsvDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException, CsvValidationException {
         List<ParkingSpace> parkingSpaces = new ArrayList<>();
         log.debug("Reading CSV data from file: {}", filePath);
 
@@ -50,8 +48,7 @@ public class CsvHandler {
 
                 if (geometry instanceof Polygon) {
                     parkingSpace.setPolygon((Polygon) geometry);
-                } else if (geometry instanceof MultiPolygon) {
-                    MultiPolygon multiPolygon = (MultiPolygon) geometry;
+                } else if (geometry instanceof MultiPolygon multiPolygon) {
                     if (multiPolygon.getNumGeometries() > 0) {
                         parkingSpace.setPolygon((Polygon) multiPolygon.getGeometryN(0));
                     }
@@ -59,8 +56,7 @@ public class CsvHandler {
                     log.error("Geometry is not a Polygon or MultiPolygon: {}", geometry.toText());
                 }
 
-                parkingSpace.setOccupied(false); // Assuming default is always false since it's not in CSV
-                parkingSpace.setNumberOfParkingSpaces(Integer.parseInt(nextRecord[2]));
+                parkingSpace.setCapacity(Integer.parseInt(nextRecord[2]));
                 parkingSpace.setPosition(ParkingPositionEnum.fromString(nextRecord[4]));
 
                 parkingSpaces.add(parkingSpace);

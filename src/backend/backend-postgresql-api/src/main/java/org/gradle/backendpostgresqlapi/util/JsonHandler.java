@@ -6,13 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +34,14 @@ public class JsonHandler {
      * @return string, which contains the file's data
      * @throws IOException an error when there is a problem reading the GeoJSON file
      */
-    public static String getJsonDataFromFile(String filePath) throws IOException {
-        ResourceLoader resourceLoader = new DefaultResourceLoader();
-        InputStream inputStream = resourceLoader.getResource("classpath:" + filePath).getInputStream();
+    public static String getJsonDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException {
+        log.debug("Reading GeoJSON data from file: {}", filePath);
+        Resource resource = resourceLoader.getResource("classpath:" + filePath);
+        if (!resource.exists()) {
+            throw new FileNotFoundException("File not found: " + filePath);
+        }
 
+        InputStream inputStream = resource.getInputStream();
         String geoJsonData;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             geoJsonData = reader.lines().collect(Collectors.joining("\n"));
@@ -134,10 +135,10 @@ public class JsonHandler {
             parkingSpaceJson.set("polygon", mapper.readTree(polygonJson));
             parkingSpaceJson.put("occupied", parkingSpace.isOccupied());
             parkingSpaceJson.put("area", parkingSpace.getArea());
-            parkingSpaceJson.put("numberOfParkingSpaces", parkingSpace.getNumberOfParkingSpaces());
+            parkingSpaceJson.put("capacity", parkingSpace.getCapacity());
             // handle the case where "position" is not set in data set
             ParkingPositionEnum position = parkingSpace.getPosition();
-            parkingSpaceJson.put("position", position != null ? position.toString() : null);
+            parkingSpaceJson.put("position", position != null ? position.getDisplayName() : null);
 
             // Convert the whole object to a JSON string
             return mapper.writeValueAsString(parkingSpaceJson);
