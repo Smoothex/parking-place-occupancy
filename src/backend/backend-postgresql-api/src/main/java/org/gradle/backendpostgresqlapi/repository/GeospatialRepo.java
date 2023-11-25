@@ -14,7 +14,15 @@ import org.locationtech.jts.geom.Polygon;
 @Transactional
 public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
 
-    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (ps_id SERIAL PRIMARY KEY, ps_coordinates GEOGRAPHY(POLYGON, 4326), ps_occupied BOOLEAN DEFAULT 'f', ps_area DOUBLE PRECISION)";
+    String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS parking_spaces (" +
+                                "ps_id SERIAL PRIMARY KEY, " +
+                                "ps_coordinates GEOGRAPHY(POLYGON, 4326), " +
+                                "ps_occupied BOOLEAN DEFAULT FALSE, " +
+                                "ps_area DOUBLE PRECISION, " +
+                                "ps_capacity INTEGER, " +
+                                "ps_position VARCHAR(255)" +   // in Java program presented as enum, but still german words in postgres
+                            ")";
+
     String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON parking_spaces USING GIST (ps_coordinates)";
     String UPDATE_AREA_SQL = "UPDATE parking_spaces SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_area = 0.0";
 
@@ -31,10 +39,14 @@ public interface GeospatialRepo extends JpaRepository<ParkingSpace, Integer> {
     void updateAreaColumn();
 
     @Modifying
-    default void insertParkingSpace(Polygon polygon) {
+    default void insertParkingSpaceFromPolygon(Polygon polygon) {
         ParkingSpace parkingSpace = new ParkingSpace();
         parkingSpace.setPolygon(polygon);
-        parkingSpace.setOccupied(false);
+        saveParkingSpace(parkingSpace);
+    }
+
+    @Modifying
+    default void saveParkingSpace(ParkingSpace parkingSpace) {
         this.save(parkingSpace);
     }
 
