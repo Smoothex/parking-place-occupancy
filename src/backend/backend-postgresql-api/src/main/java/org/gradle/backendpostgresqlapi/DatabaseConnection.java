@@ -15,7 +15,6 @@ import java.util.List;
 @SpringBootApplication
 public class DatabaseConnection {
 
-    private static String inputDataFormat = "csv";
     public static void main(String[] args) {
         SpringApplication.run(DatabaseConnection.class, args);
     }
@@ -25,14 +24,10 @@ public class DatabaseConnection {
     return args -> {
             geospatialService.initializeDatabase();
 
-            // Load data into the database.
-            if ("geojson".equals(inputDataFormat)) {
-                geospatialService.loadGeoJsonDataIntoDatabase();
-            } else {
-                geospatialService.loadCsvDataIntoDatabase();
-            }
+            // Load data into the database
+            geospatialService.loadDataIntoDatabase();
 
-            // Wait for the data load to complete and calculate the areas.
+            // Calculate the area of the newly inserted park spaces
             geospatialService.calculateAndUpdateAreaColumn();
 
             // Now retrieve and print all parking spaces.

@@ -24,6 +24,7 @@ import org.gradle.backendpostgresqlapi.util.CsvHandler;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import org.apache.commons.io.FilenameUtils;
 
 @Slf4j
 @Service
@@ -33,7 +34,7 @@ public class GeospatialService {
 
     private final CsvHandler csvHandler;
     private final ResourceLoader resourceLoader;
-    
+
     @Autowired
     public GeospatialService(CsvHandler csvHandler, ResourceLoader resourceLoader) {
         this.csvHandler = csvHandler;
@@ -46,6 +47,7 @@ public class GeospatialService {
     @Autowired
     private GeoDataFile geoDataFile;
 
+
     /**
      * Initializes the database schema for storing parking spaces.
      * Creates a table and a spatial index if they do not already exist.
@@ -57,41 +59,59 @@ public class GeospatialService {
         log.info("Database initialized with table parking_spaces and index PS_COORDINATES_IDX.");
     }
 
-    /**
-     * Loads data from a GeoJSON file into the database. The method
-     * reads a GeoJSON file from the filesystem, parses it, and then
-     * inserts the data into the `parking_spaces` table.
-     *
-     * @throws IOException an error when there is a problem reading the GeoJSON file
-     */
-    public void loadGeoJsonDataIntoDatabase() throws IOException {
+    public void loadDataIntoDatabase() throws IOException, CsvValidationException {
         List<String> filePaths = geoDataFile.getPaths();
+        log.debug("Loading data into the database...");
 
-        if (!CollectionUtils.isEmpty(filePaths) && StringUtils.hasLength(filePaths.get(0))) {
-            log.debug("Loading GeoJSON data into the database...");
+        if (!CollectionUtils.isEmpty(filePaths)) {
+            for (String filePath : filePaths) {
+                String extension = FilenameUtils.getExtension(filePath);
 
-            for (String filePath: filePaths) {
-                String geoJsonData = getJsonDataFromFile(filePath);
-
-                for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-                    geospatialRepo.insertParkingSpace(polygon);
+                switch (extension.toLowerCase()) {
+                    case "geojson":
+                        loadGeoJson(filePath);
+                        break;
+                    case "csv":
+                        loadCsv(filePath);
+                        break;
+                    default:
+                        log.warn("Unsupported file format for file: {}", filePath);
+                        break;
                 }
             }
-            log.info("GeoJSON data successfully loaded into the database.");
+            log.info("Data successfully loaded into the database.");
+        } else {
+            log.warn("No data files configured for loading.");
         }
     }
 
     /**
-     * Loads data from a CSV file into the database. The method
-     * reads a CSV file from the filesystem, parses it, and then
-     * inserts the data into the `parking_spaces` table.
+     * Loads data from a GeoJSON file into the database. The method
+     * reads a GeoJSON file from the filesystem and inserts the data into the `parking_spaces` table.
      *
+     * @param filePath the GeoJSON file from the filesystem to read from
+     * @throws IOException an error when there is a problem reading the GeoJSON file
+     */
+    private void loadGeoJson(String filePath) throws IOException {
+        log.debug("Loading GeoJSON data into the database...");
+        String geoJsonData = getJsonDataFromFile(filePath);
+        for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
+            geospatialRepo.insertParkingSpace(polygon);
+        }
+        log.info("GeoJSON data successfully loaded into the database.");
+    }
+
+    /**
+     * Loads data from a GeoJSON file into the database. The method
+     * reads a CSV file from the filesystem and inserts the data into the `parking_spaces` table.
+     * 
+     * @param filePath the GeoJSON file from the filesystem to read from
      * @throws IOException an error when there is a problem reading the GeoJSON file
      * @throws CsvValidationException
      */
-    public void loadCsvDataIntoDatabase() throws IOException, CsvValidationException {
+    public void loadCsv(String filePath) throws IOException, CsvValidationException {
         log.debug("Loading CSV data into the database...");
-        List<ParkingSpace> csvParkingSpaces = csvHandler.getCsvDataFromFile(resourceLoader, CSV_FILE);
+        List<ParkingSpace> csvParkingSpaces = csvHandler.getCsvDataFromFile(resourceLoader, filePath);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
             geospatialRepo.insertParkingSpaceFromCSV(parkingSpace);
         }

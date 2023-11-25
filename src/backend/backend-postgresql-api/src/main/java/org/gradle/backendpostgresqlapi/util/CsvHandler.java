@@ -36,7 +36,7 @@ public class CsvHandler {
         List<ParkingSpace> parkingSpaces = new ArrayList<>();
         log.debug("Reading CSV data from file: {}", filePath);
 
-        Resource resource = resourceLoader.getResource(filePath);
+        Resource resource = resourceLoader.getResource("classpath:" + filePath);
         if (!resource.exists()) {
             throw new FileNotFoundException("File not found: " + filePath);
         }

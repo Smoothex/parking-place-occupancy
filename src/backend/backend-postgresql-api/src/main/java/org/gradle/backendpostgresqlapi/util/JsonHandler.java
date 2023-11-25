@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.gradle.backendpostgresqlapi.entity.ParkingPositionEnum;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Polygon;
@@ -134,7 +135,9 @@ public class JsonHandler {
             parkingSpaceJson.put("occupied", parkingSpace.isOccupied());
             parkingSpaceJson.put("area", parkingSpace.getArea());
             parkingSpaceJson.put("numberOfParkingSpaces", parkingSpace.getNumberOfParkingSpaces());
-            parkingSpaceJson.put("position", parkingSpace.getPosition().toString());
+            // handle the case where "position" is not set in data set
+            ParkingPositionEnum position = parkingSpace.getPosition();
+            parkingSpaceJson.put("position", position != null ? position.toString() : null);
 
             // Convert the whole object to a JSON string
             return mapper.writeValueAsString(parkingSpaceJson);
