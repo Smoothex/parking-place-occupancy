@@ -53,11 +53,9 @@ public class ParkingSpace {
 
     private String coordinatesToString(Polygon polygon) {
         if (polygon == null) return "null";
-    
+
         return Stream.of(polygon.getCoordinates())
                      .map(coordinate -> String.format(Locale.US,"(%.4f, %.4f)", coordinate.x, coordinate.y))
                      .collect(Collectors.joining(", "));
     }
 }
-
-
