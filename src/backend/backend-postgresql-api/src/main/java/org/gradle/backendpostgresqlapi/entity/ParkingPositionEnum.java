@@ -1,34 +1,26 @@
 package org.gradle.backendpostgresqlapi.entity;
 
+import lombok.Getter;
+
+@Getter
 public enum ParkingPositionEnum {
-    SCHRÄG {
-        public String toString() {
-            return "Diagonal";
-        }
-    },
-    LÄNGS {
-        public String toString() {
-            return "Parallel";
-        }
-    },
-    QUER {
-        public String toString() {
-            return "Transverse"; // Transverse or across parking
-        }
-    };
+    SCHRAEG("Diagonal"),
+    LAENGS("Parallel"),
+    QUER("Transverse"); // Transverse or across parking
+
+    private final String displayName;
+
+    ParkingPositionEnum (String displayName){
+        this.displayName = displayName;
+    }
 
     // get the enum instance from the string value
     public static ParkingPositionEnum fromString(String position) {
-        switch (position.toUpperCase()) {
-            case "SCHRÄG":
-                return SCHRÄG;
-            case "LÄNGS":
-            case "LÄNGE":
-                return LÄNGS;
-            case "QUER":
-                return QUER;
-            default:
-                throw new IllegalArgumentException("No enum constant for string value: " + position);
-        }
+        return switch (position.toUpperCase()) {
+            case "SCHRÄG" -> SCHRAEG;
+            case "LÄNGS", "LÄNGE" -> LAENGS;
+            case "QUER" -> QUER;
+            default -> throw new IllegalArgumentException("No enum constant for string value: " + position);
+        };
     }
 }

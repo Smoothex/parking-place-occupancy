@@ -48,7 +48,7 @@ public class ParkingSpaceController {
     // http://localhost:8080/api/parking-spaces/search?occupied=true
     @GetMapping("/search")
     public ResponseEntity<List<String>> findParkingSpacesByOccupancy(@RequestParam("occupied") boolean occupied) {
-        List<String> parkingSpaces = geospatialService.findParkingSpacesByOccupancy(occupied);
+        List<String> parkingSpaces = geospatialService.getParkingSpacesByOccupancyAsJson(occupied);
         if (parkingSpaces.isEmpty()) {
             return ResponseEntity.noContent().build();
         }

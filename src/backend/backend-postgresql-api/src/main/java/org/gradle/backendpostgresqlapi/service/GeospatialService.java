@@ -16,28 +16,22 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
-import org.gradle.backendpostgresqlapi.util.CsvHandler;
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
+import static org.gradle.backendpostgresqlapi.util.CsvHandler.*;
 
 
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.apache.commons.io.FilenameUtils;
 
 @Slf4j
 @Service
 public class GeospatialService {
 
-    private static final String CSV_FILE = "classpath:second_data.csv";
-
-    private final CsvHandler csvHandler;
     private final ResourceLoader resourceLoader;
 
     @Autowired
-    public GeospatialService(CsvHandler csvHandler, ResourceLoader resourceLoader) {
-        this.csvHandler = csvHandler;
+    public GeospatialService(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
 
@@ -65,21 +59,15 @@ public class GeospatialService {
 
         if (!CollectionUtils.isEmpty(filePaths)) {
             for (String filePath : filePaths) {
-                String extension = FilenameUtils.getExtension(filePath);
+                String extension = FilenameUtils.getExtension(filePath).toLowerCase();
 
-                switch (extension.toLowerCase()) {
-                    case "geojson":
-                        loadGeoJson(filePath);
-                        break;
-                    case "csv":
-                        loadCsv(filePath);
-                        break;
-                    default:
-                        log.warn("Unsupported file format for file: {}", filePath);
-                        break;
+                switch (extension) {
+                    case "geojson" -> loadGeoJson(filePath);
+                    case "csv" -> loadCsv(filePath);
+                    default -> log.warn("Unsupported file format for file: {}", filePath);
                 }
             }
-            log.info("Data successfully loaded into the database.");
+            log.info("Data loading into the database is completed.");
         } else {
             log.warn("No data files configured for loading.");
         }
@@ -94,28 +82,28 @@ public class GeospatialService {
      */
     private void loadGeoJson(String filePath) throws IOException {
         log.debug("Loading GeoJSON data into the database...");
-        String geoJsonData = getJsonDataFromFile(filePath);
+        String geoJsonData = getJsonDataFromFile(resourceLoader, filePath);
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            geospatialRepo.insertParkingSpace(polygon);
+            geospatialRepo.insertParkingSpaceFromPolygon(polygon);
         }
-        log.info("GeoJSON data successfully loaded into the database.");
+        log.info("GeoJSON data loading into the database is completed.");
     }
 
     /**
-     * Loads data from a GeoJSON file into the database. The method
+     * Loads data from a CSV file into the database. The method
      * reads a CSV file from the filesystem and inserts the data into the `parking_spaces` table.
      * 
-     * @param filePath the GeoJSON file from the filesystem to read from
-     * @throws IOException an error when there is a problem reading the GeoJSON file
-     * @throws CsvValidationException
+     * @param filePath the CSV file from the filesystem to read from
+     * @throws IOException an error when there is a problem reading the CSV file
+     * @throws CsvValidationException an error when there is a problem validating the CSV file
      */
-    public void loadCsv(String filePath) throws IOException, CsvValidationException {
+    private void loadCsv(String filePath) throws IOException, CsvValidationException {
         log.debug("Loading CSV data into the database...");
-        List<ParkingSpace> csvParkingSpaces = csvHandler.getCsvDataFromFile(resourceLoader, filePath);
+        List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
-            geospatialRepo.insertParkingSpaceFromCSV(parkingSpace);
+            geospatialRepo.saveParkingSpace(parkingSpace);
         }
-        log.info("CSV data successfully loaded into the database.");
+        log.info("CSV data loading into the database is completed.");
     }
 
     public void calculateAndUpdateAreaColumn() {
@@ -129,8 +117,7 @@ public class GeospatialService {
     }    
 
     public List<String> getAllParkingSpacesAsJson() {
-        List<ParkingSpace> parkingSpaces = geospatialRepo.findAll();
-        return parkingSpaces.stream()
+        return getAllParkingSpaces().stream()
                             .map(JsonHandler::convertParkingSpaceToJson)
                             .collect(Collectors.toList());
     }
@@ -144,7 +131,7 @@ public class GeospatialService {
                              .map(JsonHandler::convertParkingSpaceToJson);
     }
 
-    public List<String> findParkingSpacesByOccupancy(boolean occupied) {
+    public List<String> getParkingSpacesByOccupancyAsJson(boolean occupied) {
         List<ParkingSpace> parkingSpaces = geospatialRepo.findByOccupied(occupied);
         return parkingSpaces.stream()
                     .map(JsonHandler::convertParkingSpaceToJson)
