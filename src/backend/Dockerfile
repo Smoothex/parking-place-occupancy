@@ -8,5 +8,4 @@ RUN gradle clean build
 FROM openjdk:22-ea-17-slim
 COPY --from=BUILD /app/build/libs/*.jar app.jar
 EXPOSE 8080
-# if you want to connect to locally running PostgreSQL, remove "-Dspring.profiles.active=docker"
-CMD ["java", "-jar", "/app.jar", "-Dspring.profiles.active=docker"]
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=docker", "/app.jar"]
