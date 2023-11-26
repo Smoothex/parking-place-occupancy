@@ -45,7 +45,7 @@ public class ParkingSpace {
                     "id=" + id +
                     ", coordinates=" + coordinatesToString(polygon) +
                     ", isOccupied=" + occupied +
-                    ", area=" + String.format("%.4f", area) +
+                    ", area=" + area +
                     ", capacity=" + capacity +
                     ", position=" + (position != null ? position.getDisplayName() : "null") +
                 "}";
