@@ -27,7 +27,7 @@ import java.util.List;
 
 @Slf4j
 public class CsvHandler {
-    
+
     private final static WKTReader wktReader = new WKTReader();
 
     public static List<ParkingSpace> getCsvDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException, CsvValidationException {
@@ -70,13 +70,12 @@ public class CsvHandler {
         return parkingSpaces;
     }
 
-    private static Geometry parseWktToGeometry(String wktString) {
+    private static Geometry parseWktToGeometry(String wktString) throws IOException {
         try {
             return wktReader.read(wktString);
         } catch (ParseException e) {
             log.error("Error parsing WKT to Geometry. WKT string: {}", wktString, e);
-            throw new IllegalArgumentException("Error parsing WKT to Geometry", e);
+            throw new IOException("Error parsing WKT to Geometry", e);
         }
     }
-
 }

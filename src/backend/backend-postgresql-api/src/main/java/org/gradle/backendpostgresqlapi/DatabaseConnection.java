@@ -35,5 +35,4 @@ public class DatabaseConnection {
             parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
         };
     }
-
 }

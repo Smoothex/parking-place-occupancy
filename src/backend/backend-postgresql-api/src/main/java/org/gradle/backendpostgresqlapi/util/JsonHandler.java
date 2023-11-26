@@ -36,6 +36,7 @@ public class JsonHandler {
      */
     public static String getJsonDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException {
         log.debug("Reading GeoJSON data from file: {}", filePath);
+
         Resource resource = resourceLoader.getResource("classpath:" + filePath);
         if (!resource.exists()) {
             throw new FileNotFoundException("File not found: " + filePath);
@@ -143,7 +144,6 @@ public class JsonHandler {
             // Convert the whole object to a JSON string
             return mapper.writeValueAsString(parkingSpaceJson);
         } catch (Exception e) {
-            // Handle exceptions (logging, re-throwing, etc.)
             throw new RuntimeException("Error converting ParkingSpace to JSON", e);
         }
     }
