@@ -78,10 +78,9 @@ export class MapComponent {
       }, 300);
     }
     if (this.activePolygonInteractionLayer != undefined) {
-      console.log(this.activePolygonInteractionLayer);
-      //TODO: another of clause saying changes will be saved or deleted after clicking ok
+      console.log('New edited polygon', this.activePolygonInteractionLayer);
       alert('The last edited polygon will be edited permanently');
-      this.editPolygon(this.activePolygonInteractionLayer);
+      this.editPolygonEvent(this.activePolygonInteractionLayer);
       this.activePolygonInteractionLayer.target.editing.disable();
       this.activePolygonInteractionLayer = undefined;
       // TODO: add editing check here
@@ -183,7 +182,7 @@ export class MapComponent {
 
               event.target.editing.enable();
 
-              const simple = this.simplifyGeoPolygon(arrayOfArrays);
+              // const simple = this.simplifyGeoPolygon(arrayOfArrays);
               // simple.forEach((elem: any) => {
               //   const mark = this.createMarkerPersistentStorage(elem);
               // });
@@ -196,15 +195,16 @@ export class MapComponent {
             });
             // adding historical data for the polygons
             // properties which could be edited would be stored here
-            let obj = {
+            let obj = { 
               ...parseElement,
               polygon_layer: polygon,
-              new_polygon_layer: polygon,
+              new_polygon_event_layer: polygon,
             };
             this.parkingSpaceData.push(obj);
           });
       });
       console.log('parking space data ', this.parkingSpaceData);
+
     });
   }
   /**
@@ -249,17 +249,25 @@ export class MapComponent {
     return simplifiedCoords;
   }
 
-  editPolygon(polygonEvent: any) {
-    /*
-     * TODO: remove markers being placed on the same spot
+  editPolygonEvent(polygonEvent: any) {
+    /* 
+     * TODO: remove markers being placed on the same spot ~ done
      * TODO: find the coordinate in the real polygon and edit/replace them
-     * TODO: update the data value array
-     * TODO: re-create only the particular array
+     ! * TODO: update the data value array ~ Not implemented, have to do think about the redo feature 
+     * TODO: re-create only the particular array~ no need as the old polygon shape can not be agin defined 
      * TODO: add checks for not creating an impossible polygon
      */
+    const polygonID = polygonEvent.sourceTarget._leaflet_id
+    const index = this.parkingSpaceData.findIndex((item: any) => item.polygon_layer._leaflet_id === polygonID)
+    this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent
+    // TODO : here need to add the  coordiates back to the simplify coordinates and then to the main parking space data  , whch will send post 
+    console.log()
+    console.log(this.parkingSpaceData[index])
+    //! REST POST call to save it in the database.
+
   }
 
-  // ! Not that important but might be usefull later on
+  // future feature request
   editableLayer() {
     var editableLayers = new L.FeatureGroup();
     this.map.addLayer(editableLayers);
@@ -289,7 +297,7 @@ export class MapComponent {
         marker: {
           icon: new MyCustomMarker(),
         },
-        circle: false, // Turns off this drawing tool
+        circle: false,
         rectangle: false,
         circlemarker: false,
       },
