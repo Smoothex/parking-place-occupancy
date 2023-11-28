@@ -182,14 +182,18 @@ export class PlaygroundComponent {
     const simplifiedCoords: any = simplifiedGeoJSON.geometry.coordinates[0];
     simplifiedCoords.forEach((element:any) => {
       var marker = this.createMarkerPersistentStorage(element)
-
+      
       
     });
-
+     
     const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
     simplifiedPolygon.on('click', this.editing2.bind(this))
     console.log(originalCoords)
     console.log(simplifiedCoords)
+    const newTol = 0
+    const simplifiedCoordschanged =  turf.polygon([simplifiedCoords]);
+    const revertedPolygon = turf.simplify(simplifiedCoordschanged, { tolerance:newTol });
+    console.log("reverted ",revertedPolygon)
   }
   editing2(e: any) {
     console.log("polygonis", e)
