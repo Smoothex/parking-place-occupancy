@@ -72,6 +72,7 @@ public class JsonHandler {
             Polygon polygon = convertJsonNodeToPolygon(coordinates);
             polygons.add(polygon);
         }
+        log.info("Successfully loaded {} parking spaces from JSON file.", polygons.size());
         return polygons;
     }
 

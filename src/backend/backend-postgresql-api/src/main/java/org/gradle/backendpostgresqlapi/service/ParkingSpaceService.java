@@ -29,6 +29,8 @@ public class ParkingSpaceService {
     private final ParkingSpaceRepo parkingSpaceRepo;
     private final GeoDataFile geoDataFile;
 
+    private static final String TABLE_NAME = "parking_spaces";
+
     @Autowired
     public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo, GeoDataFile geoDataFile) {
         this.resourceLoader = resourceLoader;
@@ -37,18 +39,17 @@ public class ParkingSpaceService {
     }
 
     /**
-     * Initializes the database schema for storing parking spaces.
-     * Creates a table and a spatial index if they do not already exist.
+     * Creates a spatial index if it does not already exist.
      */
     public void initializeDatabaseIndex() {
-        log.debug("Initializing index for table 'parking_spaces' ...");
+        log.debug("Initializing index for table '{}' ...", TABLE_NAME);
         parkingSpaceRepo.createMainDataIndex();
         log.info("Index 'ps_coordinates_idx' created.");
     }
 
     public void loadDataIntoDatabase() throws IOException, CsvValidationException {
         List<String> filePaths = geoDataFile.getPaths();
-        log.debug("Loading data into the database...");
+        log.debug("Loading data into '{}' ...", TABLE_NAME);
 
         if (!CollectionUtils.isEmpty(filePaths)) {
             for (String filePath : filePaths) {
@@ -60,7 +61,7 @@ public class ParkingSpaceService {
                     default -> log.warn("Unsupported file format for file: {}", filePath);
                 }
             }
-            log.info("Data loading into the database is completed.");
+            log.info("Data loading into '{}' is completed.", TABLE_NAME);
         } else {
             log.warn("No data files configured for loading.");
         }
@@ -74,12 +75,12 @@ public class ParkingSpaceService {
      * @throws IOException an error when there is a problem reading the GeoJSON file
      */
     private void loadGeoJson(String filePath) throws IOException {
-        log.debug("Loading GeoJSON data into the database...");
+        log.debug("Loading GeoJSON data into '{}' table...", TABLE_NAME);
         String geoJsonData = getJsonDataFromFile(resourceLoader, filePath);
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
             parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
         }
-        log.info("GeoJSON data loading into the database is completed.");
+        log.info("GeoJSON data loading into '{}' table is completed.", TABLE_NAME);
     }
 
     /**
@@ -91,15 +92,15 @@ public class ParkingSpaceService {
      * @throws CsvValidationException an error when there is a problem validating the CSV file
      */
     private void loadCsv(String filePath) throws IOException, CsvValidationException {
-        log.debug("Loading CSV data into the database...");
+        log.debug("Loading CSV data into '{}' table...", TABLE_NAME);
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
         parkingSpaceRepo.saveAll(csvParkingSpaces);
-        log.info("CSV data loading into the database is completed.");
+        log.info("CSV data loading into '{}' table is completed.", TABLE_NAME);
     }
 
     public void calculateAndUpdateAreaColumn() {
-        log.debug("Calculating and updating area column in the database...");
+        log.debug("Calculating and updating area column in '{}' table...", TABLE_NAME);
         parkingSpaceRepo.updateAreaColumn();
-        log.info("Area column values were calculated and set accordingly.");
+        log.info("Area column values were calculated and set accordingly for '{}'.", TABLE_NAME);
     }
 }

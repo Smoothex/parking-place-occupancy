@@ -12,13 +12,13 @@ import java.util.List;
 
 @Repository
 @Transactional
-public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace, Integer> {
+public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace, Long> {
 
     String UPDATE_AREA_SQL = "UPDATE edited_parking_spaces SET еdit_area = ROUND(CAST(ST_AREA(еdit_coordinates) AS NUMERIC),2) WHERE еdit_id = :id";
 
     @Modifying
     @Query(value = UPDATE_AREA_SQL, nativeQuery = true)
-    void updateAreaColumnById(@Param("id") int id);
+    void updateAreaColumnById(@Param("id") long id);
 
     List<EditedParkingSpace> findByOccupied(boolean occupied);
 }

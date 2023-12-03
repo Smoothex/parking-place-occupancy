@@ -21,6 +21,8 @@ public class EditedParkingSpaceService {
     private final EditedParkingSpaceRepo editedParkingSpaceRepo;
     private final ParkingSpaceRepo parkingSpaceRepo;
 
+    private static final String TABLE_NAME = "edited_parking_spaces";
+
     @Autowired
     public EditedParkingSpaceService(ParkingSpaceRepo parkingSpaceRepo, EditedParkingSpaceRepo editedParkingSpaceRepo) {
         this.parkingSpaceRepo = parkingSpaceRepo;
@@ -28,21 +30,21 @@ public class EditedParkingSpaceService {
     }
 
     public void copyDataIntoDatabase() throws IOException{
-        for (int i = 1; i <= parkingSpaceRepo.count(); i++) {
+        for (long i = 1; i <= parkingSpaceRepo.count(); i++) {
             Optional<ParkingSpace> parkingSpace = parkingSpaceRepo.findById(i);
             if (parkingSpace.isPresent()) {
                 EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(parkingSpace.get());
                 editedParkingSpaceRepo.save(editedParkingSpace);
             } else {
-                throw new IOException("Error on copying data.");
+                throw new IOException(String.format("Error on copying data into '%s'.", TABLE_NAME));
             }
         }
     }
 
-    public void calculateAndUpdateAreaColumnById(int id) {
-        log.debug("Calculating and updating area column in the database...");
+    public void calculateAndUpdateAreaColumnById(long id) {
+        log.debug("Calculating and updating area column in '{}' table...", TABLE_NAME);
         editedParkingSpaceRepo.updateAreaColumnById(id);
-        log.info("Area column values were calculated and set accordingly.");
+        log.info("Area column values were calculated and set accordingly for '{}'.", TABLE_NAME);
     }
 
     public List<EditedParkingSpace> getAllEditedParkingSpaces() {
@@ -55,11 +57,11 @@ public class EditedParkingSpaceService {
                             .collect(Collectors.toList());
     }
 
-    private Optional<EditedParkingSpace> getEditedParkingSpaceById(int id) {
+    private Optional<EditedParkingSpace> getEditedParkingSpaceById(long id) {
         return editedParkingSpaceRepo.findById(id);
     }
 
-    public Optional<String> getEditedParkingSpaceByIdAsJson(int id) {
+    public Optional<String> getEditedParkingSpaceByIdAsJson(long id) {
         return getEditedParkingSpaceById(id)
                              .map(JsonHandler::convertEditedParkingSpaceToJson);
     }
@@ -71,19 +73,29 @@ public class EditedParkingSpaceService {
                     .collect(Collectors.toList());
     }
 
-    public boolean updateOccupancyStatus(int id, boolean occupied) {
+    public EditedParkingSpace updateOccupancyStatus(long id, boolean occupied) {
         Optional<EditedParkingSpace> editedParkingSpaceOptional = getEditedParkingSpaceById(id);
         if (editedParkingSpaceOptional.isPresent()) {
             EditedParkingSpace editedParkingSpace = editedParkingSpaceOptional.get();
             editedParkingSpace.setOccupied(occupied);
-            editedParkingSpaceRepo.save(editedParkingSpace);
-            return true;
+            return editedParkingSpaceRepo.save(editedParkingSpace);
         }
-        return false;
+        return null;
     }
 
-    public Optional<String> getAreaOfEditedParkingSpaceById(int id) {
+    public Optional<String> getAreaOfEditedParkingSpaceById(long id) {
         return getEditedParkingSpaceById(id).map(EditedParkingSpace::getArea).map(Object::toString);
+    }
+
+    public EditedParkingSpace updatePolygonCoordinates(long id, EditedParkingSpace parkingSpaceWithChangedCoordinates) {
+        Optional<EditedParkingSpace> editedParkingSpaceOptional = getEditedParkingSpaceById(id);
+
+        if (editedParkingSpaceOptional.isPresent()) {
+            EditedParkingSpace editedParkingSpace = editedParkingSpaceOptional.get();
+            editedParkingSpace.setPolygon(parkingSpaceWithChangedCoordinates.getPolygon());
+            return editedParkingSpaceRepo.save(editedParkingSpace);
+        }
+        return null;
     }
 
     private EditedParkingSpace convertToEditedParkingSpace(ParkingSpace parkingSpace) {
