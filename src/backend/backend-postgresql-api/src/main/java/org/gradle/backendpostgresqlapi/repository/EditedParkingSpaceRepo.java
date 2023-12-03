@@ -14,7 +14,7 @@ import java.util.List;
 @Transactional
 public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace, Long> {
 
-    String UPDATE_AREA_SQL = "UPDATE edited_parking_spaces SET еdit_area = ROUND(CAST(ST_AREA(еdit_coordinates) AS NUMERIC),2) WHERE еdit_id = :id";
+    String UPDATE_AREA_SQL = "UPDATE edited_parking_spaces SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) WHERE edit_id = :id";
 
     @Modifying
     @Query(value = UPDATE_AREA_SQL, nativeQuery = true)
