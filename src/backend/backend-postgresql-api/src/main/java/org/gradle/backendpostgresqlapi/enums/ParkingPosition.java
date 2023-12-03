@@ -1,21 +1,21 @@
-package org.gradle.backendpostgresqlapi.entity;
+package org.gradle.backendpostgresqlapi.enums;
 
 import lombok.Getter;
 
 @Getter
-public enum ParkingPositionEnum {
+public enum ParkingPosition {
     SCHRAEG("Diagonal"),
     LAENGS("Parallel"),
     QUER("Transverse"); // Transverse or across parking
 
     private final String displayName;
 
-    ParkingPositionEnum (String displayName){
+    ParkingPosition(String displayName){
         this.displayName = displayName;
     }
 
     // get the enum instance from the string value
-    public static ParkingPositionEnum fromString(String position) {
+    public static ParkingPosition fromString(String position) {
         return switch (position.toUpperCase()) {
             case "SCHRÄG" -> SCHRAEG;
             case "LÄNGS", "LÄNGE" -> LAENGS;

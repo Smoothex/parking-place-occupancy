@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
@@ -16,8 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import org.gradle.backendpostgresqlapi.entity.ParkingPositionEnum;
-import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
+import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -36,6 +36,7 @@ public class JsonHandler {
      */
     public static String getJsonDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException {
         log.debug("Reading GeoJSON data from file: {}", filePath);
+
         Resource resource = resourceLoader.getResource("classpath:" + filePath);
         if (!resource.exists()) {
             throw new FileNotFoundException("File not found: " + filePath);
@@ -71,6 +72,7 @@ public class JsonHandler {
             Polygon polygon = convertJsonNodeToPolygon(coordinates);
             polygons.add(polygon);
         }
+        log.info("Successfully loaded {} parking spaces from JSON file.", polygons.size());
         return polygons;
     }
 
@@ -117,34 +119,34 @@ public class JsonHandler {
     }
 
     /**
-     * Converts parking space object to JSON format.
+     * Converts edited parking space object to JSON format.
      *
-     * @param parkingSpace the object to convert
+     * @param editedParkingSpace the object to convert
      * @return a string representation in JSON format
      */
-    public static String convertParkingSpaceToJson(ParkingSpace parkingSpace) {
+    public static String convertEditedParkingSpaceToJson(EditedParkingSpace editedParkingSpace) {
         ObjectMapper mapper = new ObjectMapper();
 
         // Convert Polygon to JSON
-        String polygonJson = JsonHandler.convertPolygonToJson(parkingSpace.getPolygon());
+        String polygonJson = JsonHandler.convertPolygonToJson(editedParkingSpace.getPolygon());
 
         try {
             // Construct a JSON object
-            ObjectNode parkingSpaceJson = mapper.createObjectNode();
-            parkingSpaceJson.put("id", parkingSpace.getId());
-            parkingSpaceJson.set("polygon", mapper.readTree(polygonJson));
-            parkingSpaceJson.put("occupied", parkingSpace.isOccupied());
-            parkingSpaceJson.put("area", parkingSpace.getArea());
-            parkingSpaceJson.put("capacity", parkingSpace.getCapacity());
+            ObjectNode editedParkingSpaceJson = mapper.createObjectNode();
+            editedParkingSpaceJson.put("id", editedParkingSpace.getId());
+            editedParkingSpaceJson.put("parkingSpaceId", editedParkingSpace.getParkingSpaceId());
+            editedParkingSpaceJson.set("polygon", mapper.readTree(polygonJson));
+            editedParkingSpaceJson.put("occupied", editedParkingSpace.isOccupied());
+            editedParkingSpaceJson.put("area", editedParkingSpace.getArea());
+            editedParkingSpaceJson.put("capacity", editedParkingSpace.getCapacity());
             // handle the case where "position" is not set in data set
-            ParkingPositionEnum position = parkingSpace.getPosition();
-            parkingSpaceJson.put("position", position != null ? position.getDisplayName() : null);
+            ParkingPosition position = editedParkingSpace.getPosition();
+            editedParkingSpaceJson.put("position", position != null ? position.getDisplayName() : null);
 
             // Convert the whole object to a JSON string
-            return mapper.writeValueAsString(parkingSpaceJson);
+            return mapper.writeValueAsString(editedParkingSpaceJson);
         } catch (Exception e) {
-            // Handle exceptions (logging, re-throwing, etc.)
-            throw new RuntimeException("Error converting ParkingSpace to JSON", e);
+            throw new RuntimeException("Error converting EditedParkingSpace to JSON", e);
         }
     }
 }

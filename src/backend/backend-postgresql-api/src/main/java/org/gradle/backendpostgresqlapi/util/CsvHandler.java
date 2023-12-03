@@ -6,7 +6,7 @@ import com.opencsv.exceptions.CsvValidationException;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.gradle.backendpostgresqlapi.entity.ParkingPositionEnum;
+import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -27,7 +27,7 @@ import java.util.List;
 
 @Slf4j
 public class CsvHandler {
-    
+
     private final static WKTReader wktReader = new WKTReader();
 
     public static List<ParkingSpace> getCsvDataFromFile(ResourceLoader resourceLoader, String filePath) throws IOException, CsvValidationException {
@@ -57,7 +57,7 @@ public class CsvHandler {
                 }
 
                 parkingSpace.setCapacity(Integer.parseInt(nextRecord[2]));
-                parkingSpace.setPosition(ParkingPositionEnum.fromString(nextRecord[4]));
+                parkingSpace.setPosition(ParkingPosition.fromString(nextRecord[4]));
 
                 parkingSpaces.add(parkingSpace);
                 log.debug("Added parking space with ID: {}", nextRecord[1]);
@@ -70,13 +70,12 @@ public class CsvHandler {
         return parkingSpaces;
     }
 
-    private static Geometry parseWktToGeometry(String wktString) {
+    private static Geometry parseWktToGeometry(String wktString) throws IOException {
         try {
             return wktReader.read(wktString);
         } catch (ParseException e) {
             log.error("Error parsing WKT to Geometry. WKT string: {}", wktString, e);
-            throw new IllegalArgumentException("Error parsing WKT to Geometry", e);
+            throw new IOException("Error parsing WKT to Geometry", e);
         }
     }
-
 }
