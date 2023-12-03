@@ -18,26 +18,26 @@ public class EditedParkingSpace {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "еps_id")
-    private int id;
+    @Column(name = "еdit_id", nullable = false)
+    private Long id;
 
-    @Column(name = "eps_ps_id", nullable = false)
-    private int parkingSpaceId;
+    @Column(name = "edit_ps_id", nullable = false, updatable = false)
+    private Long parkingSpaceId;
 
-    @Column(name = "еps_coordinates", nullable = false)
+    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "еdit_coordinates", nullable = false)
     private Polygon polygon;
 
-    @Column(name = "еps_occupied")
+    @Column(name = "еdit_occupied")
     private boolean occupied;
 
-    @Column(name = "еps_area")
+    @Column(name = "еdit_area")
     private double area;
 
-    @Column(name = "еps_capacity")
+    @Column(name = "еdit_capacity")
     private Integer capacity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "еps_position")
+    @Column(name = "еdit_position")
     private ParkingPosition position;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)

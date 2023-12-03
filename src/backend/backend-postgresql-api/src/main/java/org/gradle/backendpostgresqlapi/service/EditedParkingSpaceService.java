@@ -27,15 +27,6 @@ public class EditedParkingSpaceService {
         this.editedParkingSpaceRepo = editedParkingSpaceRepo;
     }
 
-    /**
-     * Initializes the database schema for storing edited parking spaces.
-     */
-    public void initializeDatabase() {
-        log.debug("Initializing table 'edited_parking_spaces' ...");
-        editedParkingSpaceRepo.createEditedDataTable();
-        log.info("Table 'edited_parking_spaces' initialized.");
-    }
-
     public void copyDataIntoDatabase() throws IOException{
         for (int i = 1; i <= parkingSpaceRepo.count(); i++) {
             Optional<ParkingSpace> parkingSpace = parkingSpaceRepo.findById(i);

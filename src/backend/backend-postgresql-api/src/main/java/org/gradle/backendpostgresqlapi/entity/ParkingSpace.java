@@ -17,10 +17,10 @@ public class ParkingSpace {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ps_id")
-    private int id;
+    @Column(name = "ps_id", nullable = false)
+    private Long id;
 
-    @Column(name = "ps_coordinates", nullable = false)
+    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ps_coordinates", nullable = false, updatable = false)
     private Polygon polygon;
 
     @Column(name = "ps_area")

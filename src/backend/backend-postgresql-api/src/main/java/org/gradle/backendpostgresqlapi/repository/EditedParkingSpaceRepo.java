@@ -14,21 +14,7 @@ import java.util.List;
 @Transactional
 public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace, Integer> {
 
-    String CREATE_EDITED_DATA_TABLE_SQL = "CREATE TABLE IF NOT EXISTS edited_parking_spaces (" +
-                "eps_id SERIAL PRIMARY KEY, " +
-                "eps_ps_id INTEGER, " +
-                "eps_coordinates GEOGRAPHY(POLYGON, 4326), " +
-                "eps_occupied BOOLEAN DEFAULT FALSE, " +
-                "eps_area DOUBLE PRECISION, " +
-                "eps_capacity INTEGER, " +
-                "eps_position VARCHAR(255)" +   // in backend presented as enum
-                ")";
-
-    String UPDATE_AREA_SQL = "UPDATE edited_parking_spaces SET eps_area = ROUND(CAST(ST_AREA(eps_coordinates) AS NUMERIC),2) WHERE eps_id = :id";
-
-    @Modifying
-    @Query(value = CREATE_EDITED_DATA_TABLE_SQL, nativeQuery = true)
-    void createEditedDataTable();
+    String UPDATE_AREA_SQL = "UPDATE edited_parking_spaces SET еdit_area = ROUND(CAST(ST_AREA(еdit_coordinates) AS NUMERIC),2) WHERE еdit_id = :id";
 
     @Modifying
     @Query(value = UPDATE_AREA_SQL, nativeQuery = true)

@@ -23,15 +23,15 @@ public class DatabaseConnection {
     @Bean
     ApplicationRunner initializer(ParkingSpaceService parkingSpaceService, EditedParkingSpaceService editedParkingSpaceService) {
     return args -> {
-            parkingSpaceService.initializeDatabase();
+            // Initialize an index for parking_spaces database
+            parkingSpaceService.initializeDatabaseIndex();
 
             // Load data into parking_spaces database
-            //parkingSpaceService.loadDataIntoDatabase();
+            parkingSpaceService.loadDataIntoDatabase();
 
             // Calculate the area of the inserted park spaces
             parkingSpaceService.calculateAndUpdateAreaColumn();
 
-            editedParkingSpaceService.initializeDatabase();
             // Load data into edited_parking_spaces database
             editedParkingSpaceService.copyDataIntoDatabase();
 

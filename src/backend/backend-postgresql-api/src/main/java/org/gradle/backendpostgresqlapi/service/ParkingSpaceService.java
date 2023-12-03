@@ -40,11 +40,10 @@ public class ParkingSpaceService {
      * Initializes the database schema for storing parking spaces.
      * Creates a table and a spatial index if they do not already exist.
      */
-    public void initializeDatabase() {
-        log.debug("Initializing table 'parking_spaces' ...");
-        parkingSpaceRepo.createMainDataTable();
+    public void initializeDatabaseIndex() {
+        log.debug("Initializing index for table 'parking_spaces' ...");
         parkingSpaceRepo.createMainDataIndex();
-        log.info("Table 'parking_spaces' initialized and index 'ps_coordinates_idx' created.");
+        log.info("Index 'ps_coordinates_idx' created.");
     }
 
     public void loadDataIntoDatabase() throws IOException, CsvValidationException {
