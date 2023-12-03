@@ -16,6 +16,8 @@ import java.util.List;
 @SpringBootApplication
 public class DatabaseConnection {
 
+    private static final boolean LOAD_DATA_FIRST_TIME = true;
+
     public static void main(String[] args) {
         SpringApplication.run(DatabaseConnection.class, args);
     }
@@ -27,13 +29,15 @@ public class DatabaseConnection {
             parkingSpaceService.initializeDatabaseIndex();
 
             // Load data into parking_spaces database
-            parkingSpaceService.loadDataIntoDatabase();
+            if (LOAD_DATA_FIRST_TIME)
+                parkingSpaceService.loadDataIntoDatabase();
 
             // Calculate the area of the inserted park spaces
             parkingSpaceService.calculateAndUpdateAreaColumn();
 
             // Load data into edited_parking_spaces database
-            editedParkingSpaceService.copyDataIntoDatabase();
+            if (LOAD_DATA_FIRST_TIME)
+                editedParkingSpaceService.copyDataIntoDatabase();
 
             // Now retrieve and print all edited parking spaces.
             List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();
