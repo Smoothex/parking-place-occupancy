@@ -87,7 +87,7 @@ public class ParkingSpaceService {
             if (isPolygonUnique(polygon)) {
                 parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
             } else {
-                log.warn("Duplicate polygon found and skipped: {}", polygon);
+                log.warn("Parking space from GeoJSON file not loaded and skipped! A parking space with the same polygon already exists in the '{}' table.", TABLE_NAME);
             }
         }
         log.info("GeoJSON data loading into '{}' table is completed.", TABLE_NAME);
@@ -108,7 +108,7 @@ public class ParkingSpaceService {
             if (isPolygonUnique(parkingSpace.getPolygon())) {
                 parkingSpaceRepo.save(parkingSpace);
             } else {
-                log.warn("Duplicate polygon found and skipped: {}", parkingSpace.getPolygon());
+                log.warn("Parking space from CSV file not loaded and skipped! A parking space with the same polygon already exists in the '{}' table.", TABLE_NAME);
             }
         }
         log.info("CSV data loading into '{}' table is completed.", TABLE_NAME);
