@@ -31,17 +31,40 @@ export class PlaygroundComponent {
 
   private initMap(): void {
     this.map = L.map('map').setView(this.tryArray[0], 15);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 24,
-      attribution:
-        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(this.map);
+    // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //   maxZoom: 24,
+    //   attribution:
+    //     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // }).addTo(this.map);
+    //
+    // this.map.on('click', this.giveCoordinate.bind(this));
+    //
+    // var map = L.map('map').setView([latitude, longitude], zoomLevel);
 
-    this.map.on('click', this.giveCoordinate.bind(this));
+// Define the different tile layers (e.g., satellite and default map)
+    var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: 'Google Satellite'
+    });
 
-    // this.map.on('click', this.polyEditing.bind(this));
-    
-    // this.map.on('draw:created', this.drwn.bind(this))
+    var defaultLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: 'OpenStreetMap'
+    });
+
+// Add the default layer to the map
+    defaultLayer.addTo(this.map);
+
+// Create an object with layer names and corresponding layers
+    var baseLayers = {
+      "Satellite": satelliteLayer,
+      "Default": defaultLayer
+    };
+
+// Add layer control to switch between different layers
+    L.control.layers(baseLayers).addTo(this.map);
+
 
 
   }
@@ -59,7 +82,7 @@ export class PlaygroundComponent {
       polyEdit.enable();
       polyEdit.addVertex(e.latlng);
     }
-    
+
   }
   giveCoordinate(e: any) {
     console.log('clicked on map', e.latlng);
@@ -182,10 +205,10 @@ export class PlaygroundComponent {
     const simplifiedCoords: any = simplifiedGeoJSON.geometry.coordinates[0];
     simplifiedCoords.forEach((element:any) => {
       var marker = this.createMarkerPersistentStorage(element)
-      
-      
+
+
     });
-     
+
     const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
     simplifiedPolygon.on('click', this.editing2.bind(this))
     console.log(originalCoords)
@@ -198,7 +221,7 @@ export class PlaygroundComponent {
   editing2(e: any) {
     console.log("polygonis", e)
     e.target.editing.enable();
-     
+
    }
   createMarkerPersistentStorage(latlng: L.LatLng): L.Marker {
     var marker = L.marker(latlng, this.markerIcon).addTo(this.map);

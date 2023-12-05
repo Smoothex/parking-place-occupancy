@@ -26,7 +26,7 @@ export class MapComponent {
    */
   public tolerance = 0.0000005;
 
-  public debug: boolean = true;
+  public debug: boolean = false;
 
   markerIcon = {
     draggable: true,
@@ -48,16 +48,37 @@ export class MapComponent {
       iconUrl: '../../assets/red.png',
     }),
   };
+
+  /*
+  * @deprecated will not be used anymore
+  * */
+
   polygonColor: string = 'green';
 
   private initMap(): void {
     this.map = L.map('map').setView([52.54412, 13.352], 15);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
       maxZoom: 24,
-      attribution:
-        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(this.map);
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: 'Google Satellite'
+    });
 
+    var defaultLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 24,
+      attribution: 'OpenStreetMap'
+    });
+
+// Add the default layer to the map
+    defaultLayer.addTo(this.map);
+
+// Create an object with layer names and corresponding layers
+    var baseLayers = {
+      "Satellite": satelliteLayer,
+      "Default": defaultLayer
+    };
+
+// Add layer control to switch between different layers
+    L.control.layers(baseLayers).addTo(this.map);
     this.map.on('click', this.mapClickInteraction.bind(this));
   }
 
@@ -66,22 +87,12 @@ export class MapComponent {
     if (this.debug) {
       console.log('Markers present before:', this.markerLayer);
     }
-    if (this.markerLayer) {
-      this.markerLayer.forEach((singleMarker: L.Marker) => {
-        this.map.removeLayer(singleMarker);
-      });
-      setTimeout(() => {
-        this.markerLayer = [];
-        if (this.debug) {
-          console.log('Markers present after:', this.markerLayer);
-        }
-      }, 300);
-    }
     if (this.activePolygonInteractionLayer != undefined) {
       console.log('New edited polygon', this.activePolygonInteractionLayer);
       alert('The last edited polygon will be edited permanently');
       this.editPolygonEvent(this.activePolygonInteractionLayer);
       this.activePolygonInteractionLayer.target.editing.disable();
+      console.log("editing disabled")
       this.activePolygonInteractionLayer = undefined;
       // TODO: add editing check here
     }
@@ -97,7 +108,7 @@ export class MapComponent {
     }, 500);
   }
   highlightFeature(e: any) {
-    var layer = e.target;
+    let layer = e.target;
 
     layer.setStyle({
       fillColor: 'blue', // Change this to the color you want on mouseover
@@ -108,11 +119,12 @@ export class MapComponent {
 
   // Function to reset polygon color on mouseout
   resetFeature(e: any) {
-    var layer = e.target;
+    let layer = e.target;
+    let color = layer.options.color
 
     layer.setStyle({
-      fillColor: 'green',
-      color: 'green', // Change this to the original color
+      fillColor: color,
+      color: color, // Change this to the original color
       weight: 2,
       opacity: 1,
     });
@@ -134,17 +146,14 @@ export class MapComponent {
             (error) => {}
           )
           .then((area) => {
-            var coordinatesArray = parseElement.polygon.coordinates;
+            let coordinatesArray = parseElement.polygon.coordinates;
             const arrayOfArrays = coordinatesArray.map((obj: any) => [
               obj.y,
               obj.x,
             ]);
             parseElement.polygon.coordinates = arrayOfArrays;
-
-            // TODO: add another property for all the polygon
-            // TODO: polygon.sourceTarget leafert _id will be used for mapping
             const simple = this.simplifyGeoPolygon(arrayOfArrays);
-            var polygon = L.polygon(simple)
+            let polygon = L.polygon(simple)
               .addTo(this.map)
               .bindPopup(
                 'Id: ' +
@@ -159,18 +168,26 @@ export class MapComponent {
                   '<br>' +
                   ' <button (click)="`${enable}`">Edit</button>'
               );
-            if (parseElement.occupied == true) {
-              this.polygonColor = 'red';
+            let polygonColor:string = 'green'
+            if (parseElement.occupied) {
+              polygonColor = 'red';
             }
             polygon.setStyle({
-              fillColor: this.polygonColor,
-              color: this.polygonColor,
+              fillColor: polygonColor,
+              color: polygonColor,
+              opacity:1,
+              weight: 3,
             });
             polygon.on({
-              mouseover: this.highlightFeature,
-              mouseout: this.resetFeature,
+              mouseover:(event:any)=>{
+                this.highlightFeature(event)
+              },
+              mouseout:(event:any)=>{
+                this.resetFeature(event)
+              }
             });
             polygon.on('click', (event) => {
+              // TODO: a boolean flag
               if (this.activePolygonInteractionLayer != undefined) {
                 this.mapClickInteraction(event);
               } else {
@@ -195,7 +212,7 @@ export class MapComponent {
             });
             // adding historical data for the polygons
             // properties which could be edited would be stored here
-            let obj = { 
+            let obj = {
               ...parseElement,
               polygon_layer: polygon,
               new_polygon_event_layer: polygon,
@@ -215,7 +232,7 @@ export class MapComponent {
     latlng: L.LatLng,
     markerIcon: any = this.markerIcon
   ): L.Marker {
-    var marker = L.marker(latlng, markerIcon).addTo(this.map);
+    let marker = L.marker(latlng, markerIcon).addTo(this.map);
     marker.on('drag', function (e: any) {
       console.log('dragging marker');
       console.log('marker position ', e.latlng);
@@ -224,7 +241,7 @@ export class MapComponent {
     return marker;
   }
   /**
-   * This method functionality is only for debigging purposes, which uses an external library to create and draw the polygon
+   * This method functionality is only for debugging purposes, which uses an external library to create and draw the polygon
    * @param originalCoords coordinates for polygon
    */
   addPolygon(originalCoords: any[]) {
@@ -250,17 +267,17 @@ export class MapComponent {
   }
 
   editPolygonEvent(polygonEvent: any) {
-    /* 
+    /*
      * TODO: remove markers being placed on the same spot ~ done
      * TODO: find the coordinate in the real polygon and edit/replace them
-     ! * TODO: update the data value array ~ Not implemented, have to do think about the redo feature 
-     * TODO: re-create only the particular array~ no need as the old polygon shape can not be agin defined 
+     ! * TODO: update the data value array ~ Not implemented, have to do think about the redo feature
+     * TODO: re-create only the particular array~ no need as the old polygon shape can not be agin defined
      * TODO: add checks for not creating an impossible polygon
      */
     const polygonID = polygonEvent.sourceTarget._leaflet_id
     const index = this.parkingSpaceData.findIndex((item: any) => item.polygon_layer._leaflet_id === polygonID)
     this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent
-    // TODO : here need to add the  coordiates back to the simplify coordinates and then to the main parking space data  , whch will send post 
+    // TODO : here need to add the  coordiates back to the simplify coordinates and then to the main parking space data  , whch will send post
     console.log()
     console.log(this.parkingSpaceData[index])
     //! REST POST call to save it in the database.
@@ -269,10 +286,10 @@ export class MapComponent {
 
   // future feature request
   editableLayer() {
-    var editableLayers = new L.FeatureGroup();
+    let editableLayers = new L.FeatureGroup();
     this.map.addLayer(editableLayers);
 
-    var MyCustomMarker = L.Icon.extend({
+    let MyCustomMarker = L.Icon.extend({
       options: {
         shadowUrl: null,
         iconAnchor: new L.Point(12, 12),
@@ -280,7 +297,7 @@ export class MapComponent {
         iconUrl: '../../assets/marker-icon.png',
       },
     });
-    var options: any = {
+    let options: any = {
       position: 'topright',
       draw: {
         polyline: false,
@@ -306,11 +323,11 @@ export class MapComponent {
         remove: false,
       },
     };
-    var drawControl = new L.Control.Draw(options);
+    let drawControl = new L.Control.Draw(options);
     this.map.addControl(drawControl);
 
     this.map.on(L.Draw.Event.CREATED, function (e: any) {
-      var type = e.layerType,
+      let type = e.layerType,
         layer = e.layer;
 
       if (type === 'marker') {
