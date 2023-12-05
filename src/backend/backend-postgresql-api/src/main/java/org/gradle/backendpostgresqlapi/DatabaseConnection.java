@@ -41,11 +41,11 @@ public class DatabaseConnection {
                 editedParkingSpaceService.copyDataIntoDatabase();
 
             // Now retrieve and print all edited parking spaces.
-            //List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();
-            //editedParkingSpaces.forEach(eps -> System.out.println(eps.toString()));
+            List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();
+            editedParkingSpaces.forEach(eps -> System.out.println(eps.toString()));
 
-            List<ParkingSpace> parkingSpaces = parkingSpaceService.getAllParkingSpaces();
-            parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
+            //List<ParkingSpace> parkingSpaces = parkingSpaceService.getAllParkingSpaces();
+            //parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
         };
     }
 }
