@@ -120,8 +120,7 @@ public class ParkingSpaceService {
         log.info("Area column values were calculated and set accordingly for '{}'.", TABLE_NAME);
     }
 
-    @Transactional(readOnly = true)
-    public boolean isPolygonUnique(Polygon newPolygon) {
+    private boolean isPolygonUnique(Polygon newPolygon) {
         // Convert the new polygon to WKT (Well-Known Text)
         String newPolygonWKT = new WKTWriter().write(newPolygon);
 
