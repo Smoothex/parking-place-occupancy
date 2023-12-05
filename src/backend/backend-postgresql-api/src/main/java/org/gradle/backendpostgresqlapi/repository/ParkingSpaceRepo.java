@@ -16,7 +16,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     String CREATE_MAIN_DATA_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON parking_spaces USING GIST (ps_coordinates)";
     String UPDATE_AREA_SQL = "UPDATE parking_spaces SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_area = 0.0";
-    String COUNT_NUM_OF_POLYGONS = "SELECT COUNT(*) FROM parking_spaces WHERE ST_Equals(cast(ps_coordinates as geometry), ST_GeomFromText(:polygonToCompareWith, 4326))";
+    String COUNT_NUM_OF_POLYGONS = "SELECT COUNT(*) FROM parking_spaces WHERE ST_Equals(cast(ps_coordinates as geometry), ST_GeomFromText(:polygonToCompareWith, 4326)) LIMIT 1";
 
     @Modifying
     @Query(value = CREATE_MAIN_DATA_INDEX_SQL, nativeQuery = true)
@@ -35,5 +35,4 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     @Query(value = COUNT_NUM_OF_POLYGONS, nativeQuery = true)
     long countSamePolygons(@Param("polygonToCompareWith") String polygonToCompareWith);
-    
 }
