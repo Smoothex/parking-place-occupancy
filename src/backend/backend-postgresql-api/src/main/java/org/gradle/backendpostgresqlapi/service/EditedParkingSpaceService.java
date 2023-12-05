@@ -29,12 +29,21 @@ public class EditedParkingSpaceService {
         this.editedParkingSpaceRepo = editedParkingSpaceRepo;
     }
 
-    public void copyDataIntoDatabase() throws IOException{
+    public void copyDataIntoDatabase() throws IOException {
         for (long i = 1; i <= parkingSpaceRepo.count(); i++) {
             Optional<ParkingSpace> parkingSpace = parkingSpaceRepo.findById(i);
             if (parkingSpace.isPresent()) {
-                EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(parkingSpace.get());
-                editedParkingSpaceRepo.save(editedParkingSpace);
+                ParkingSpace existingParkingSpace = parkingSpace.get();
+
+                // Check if a parking space with reference to the current id already exists in the second database
+                boolean isDuplicate = editedParkingSpaceRepo.existsByParkingSpaceId(existingParkingSpace.getId());
+    
+                if (!isDuplicate) {
+                    EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(existingParkingSpace);
+                    editedParkingSpaceRepo.save(editedParkingSpace);
+                } else {
+                    log.warn("Parking space from first table not copied! A parking space with the same id already exists in the '{}' table.", TABLE_NAME);
+                }
             } else {
                 throw new IOException(String.format("Error on copying data into '%s'.", TABLE_NAME));
             }

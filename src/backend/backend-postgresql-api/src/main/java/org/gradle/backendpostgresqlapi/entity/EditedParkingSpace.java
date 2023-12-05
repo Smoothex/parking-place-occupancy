@@ -47,7 +47,7 @@ public class EditedParkingSpace {
     public String toString() {
         return "EditedParkingSpace{" +
                     "id=" + id +
-                    ", parkingSpaceId" + parkingSpaceId +
+                    ", parkingSpaceId=" + parkingSpaceId +
                     ", coordinates=" + coordinatesToString(polygon) +
                     ", isOccupied=" + occupied +
                     ", area=" + area +

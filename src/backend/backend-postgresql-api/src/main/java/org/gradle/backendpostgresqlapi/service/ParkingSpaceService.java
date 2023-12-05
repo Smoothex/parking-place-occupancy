@@ -18,6 +18,7 @@ import static org.gradle.backendpostgresqlapi.util.CsvHandler.*;
 
 
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.WKTWriter;
 import org.springframework.util.CollectionUtils;
 import org.apache.commons.io.FilenameUtils;
 
@@ -61,11 +62,15 @@ public class ParkingSpaceService {
                     default -> log.warn("Unsupported file format for file: {}", filePath);
                 }
             }
-            log.info("Data loading into '{}' is completed.", TABLE_NAME);
+            log.info("Successfully loaded all data in '{}'.", TABLE_NAME);
         } else {
             log.warn("No data files configured for loading.");
         }
     }
+
+    public List<ParkingSpace> getAllParkingSpaces() {
+        return parkingSpaceRepo.findAll();
+    }   
 
     /**
      * Loads data from a GeoJSON file into the database. The method
@@ -78,7 +83,11 @@ public class ParkingSpaceService {
         log.debug("Loading GeoJSON data into '{}' table...", TABLE_NAME);
         String geoJsonData = getJsonDataFromFile(resourceLoader, filePath);
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
+            if (isPolygonUnique(polygon)) {
+                parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
+            } else {
+                log.warn("Parking space from GeoJSON file not loaded and skipped! A parking space with the same polygon already exists in the '{}' table.", TABLE_NAME);
+            }
         }
         log.info("GeoJSON data loading into '{}' table is completed.", TABLE_NAME);
     }
@@ -94,7 +103,13 @@ public class ParkingSpaceService {
     private void loadCsv(String filePath) throws IOException, CsvValidationException {
         log.debug("Loading CSV data into '{}' table...", TABLE_NAME);
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
-        parkingSpaceRepo.saveAll(csvParkingSpaces);
+        for (ParkingSpace parkingSpace : csvParkingSpaces) {
+            if (isPolygonUnique(parkingSpace.getPolygon())) {
+                parkingSpaceRepo.save(parkingSpace);
+            } else {
+                log.warn("Parking space from CSV file not loaded and skipped! A parking space with the same polygon already exists in the '{}' table.", TABLE_NAME);
+            }
+        }
         log.info("CSV data loading into '{}' table is completed.", TABLE_NAME);
     }
 
@@ -102,5 +117,15 @@ public class ParkingSpaceService {
         log.debug("Calculating and updating area column in '{}' table...", TABLE_NAME);
         parkingSpaceRepo.updateAreaColumn();
         log.info("Area column values were calculated and set accordingly for '{}'.", TABLE_NAME);
+    }
+
+    private boolean isPolygonUnique(Polygon newPolygon) {
+        // Convert the new polygon to WKT (Well-Known Text)
+        String newPolygonWKT = new WKTWriter().write(newPolygon);
+
+        // Use a spatial query to check for duplicates using the index
+        long count = parkingSpaceRepo.countSamePolygons(newPolygonWKT);
+
+        return count == 0; // If count is 0, the polygon is unique
     }
 }
