@@ -21,4 +21,6 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
     void updateAreaColumnById(@Param("id") long id);
 
     List<EditedParkingSpace> findByOccupied(boolean occupied);
+
+    boolean existsByParkingSpaceId(long id);
 }

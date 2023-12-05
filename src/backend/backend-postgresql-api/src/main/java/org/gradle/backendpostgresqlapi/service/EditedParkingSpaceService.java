@@ -34,9 +34,9 @@ public class EditedParkingSpaceService {
             Optional<ParkingSpace> parkingSpace = parkingSpaceRepo.findById(i);
             if (parkingSpace.isPresent()) {
                 ParkingSpace existingParkingSpace = parkingSpace.get();
-                
-                // Check if the parking space with the same polygon already exists in the second database
-                boolean isDuplicate = editedParkingSpaceRepo.existsById(existingParkingSpace.getId());
+
+                // Check if a parking space with reference to the current id already exists in the second database
+                boolean isDuplicate = editedParkingSpaceRepo.existsByParkingSpaceId(existingParkingSpace.getId());
     
                 if (!isDuplicate) {
                     EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(existingParkingSpace);
