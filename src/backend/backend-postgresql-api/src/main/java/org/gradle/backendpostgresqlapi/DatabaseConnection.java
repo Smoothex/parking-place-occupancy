@@ -7,6 +7,7 @@ import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
+import org.gradle.backendpostgresqlapi.service.TimestampService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -26,22 +27,23 @@ public class DatabaseConnection {
 
     @Bean
     ApplicationRunner initializer(ParkingSpaceService parkingSpaceService, EditedParkingSpaceService editedParkingSpaceService,
-        ParkingPointService parkingPointService) {
+        ParkingPointService parkingPointService, TimestampService timestampService) {
     return args -> {
             // Initialize indexes for some tables
             parkingSpaceService.initializeDatabaseIndex();
             parkingPointService.initializeDbIndex();
+            timestampService.initializeDbIndex();
 
-            // Load data into parking_spaces database
-            if (LOAD_DATA_FIRST_TIME)
+            if (LOAD_DATA_FIRST_TIME) {
+                // Load data into parking_spaces database
                 parkingSpaceService.loadDataIntoDatabase();
 
-            // Calculate the area of the inserted park spaces
-            parkingSpaceService.calculateAndUpdateAreaColumn();
+                // Calculate the area of the inserted park spaces
+                parkingSpaceService.calculateAndUpdateAreaColumn();
 
-            // Load data into edited_parking_spaces database
-            if (LOAD_DATA_FIRST_TIME)
+                // Load data into edited_parking_spaces database
                 editedParkingSpaceService.copyDataIntoDatabase();
+            }
 
             // Now retrieve and print all edited parking spaces.
             List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();

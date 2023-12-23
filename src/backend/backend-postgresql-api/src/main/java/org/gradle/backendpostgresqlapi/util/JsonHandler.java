@@ -175,7 +175,7 @@ public class JsonHandler {
             pointTimestampHashMap.put(parkingPoint, timestamp);
         }
 
-        log.info("Successfully loaded {} timestamp points from JSON file.", pointTimestampHashMap.size());
+        log.info("Successfully loaded {} parking points and their timestamps from JSON file.", pointTimestampHashMap.size());
         return pointTimestampHashMap;
     }
 

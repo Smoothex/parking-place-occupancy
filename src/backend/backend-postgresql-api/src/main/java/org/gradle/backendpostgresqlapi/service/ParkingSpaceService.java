@@ -48,7 +48,7 @@ public class ParkingSpaceService {
     public void initializeDatabaseIndex() {
         log.debug("Initializing index for table '{}' ...", PARKING_SPACES);
         parkingSpaceRepo.createMainDataIndex();
-        log.info("Index 'ps_coordinates_idx' created.");
+        log.info("Index for table '{}' created.", PARKING_SPACES);
     }
 
     public void loadDataIntoDatabase() throws IOException, CsvValidationException {

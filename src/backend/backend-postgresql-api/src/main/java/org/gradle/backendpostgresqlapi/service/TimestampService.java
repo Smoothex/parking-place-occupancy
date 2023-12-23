@@ -6,6 +6,8 @@ import org.gradle.backendpostgresqlapi.repository.TimestampRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static org.gradle.backendpostgresqlapi.util.TableNameUtil.TIMESTAMPS;
+
 @Slf4j
 @Service
 public class TimestampService {
@@ -15,6 +17,15 @@ public class TimestampService {
     @Autowired
     public TimestampService(TimestampRepo timestampRepo) {
         this.timestampRepo = timestampRepo;
+    }
+
+    /**
+     * Creates a timestamp index if it does not already exist.
+     */
+    public void initializeDbIndex() {
+        log.debug("Initializing index for table '{}' ...", TIMESTAMPS);
+        timestampRepo.createDbIndex();
+        log.info("Index for table '{}' created.", TIMESTAMPS);
     }
 
     public void saveTimestamp(Timestamp timestamp) {
