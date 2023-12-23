@@ -7,7 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
-import org.gradle.backendpostgresqlapi.entity.TimestampPoint;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
+import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -17,7 +18,10 @@ import org.springframework.core.io.ResourceLoader;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -74,39 +78,6 @@ public class JsonHandler {
         }
         log.info("Successfully loaded {} parking spaces from JSON file.", polygons.size());
         return polygons;
-    }
-
-    /**
-     * This method gets the timestamp point data from a geoJSON string.
-     *
-     * @param geoJson a string, which contains timestamp points and their data
-     * @return a list with all processed timestamp points
-     * @throws JsonProcessingException an error when there is a problem processing the GeoJSON string
-     */
-    public static List<TimestampPoint> getTimestampPointsFromGeoJson(String geoJson) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode rootNode = mapper.readTree(geoJson);
-        JsonNode features = rootNode.path("features");
-
-        List<TimestampPoint> timestampPoints = new ArrayList<>();
-        for (JsonNode feature : features) {
-            JsonNode timestamp = feature.path("properties").path("DateTime");
-            JsonNode coordinates = feature.path("geometry").path("coordinates");
-            TimestampPoint timestampPoint = convertJsonNodeToTimestamppoint(timestamp, coordinates);
-            timestampPoints.add(timestampPoint);
-        }
-        log.info("Successfully loaded {} timestamp points from JSON file.", timestampPoints.size());
-        return timestampPoints;
-    }
-
-    private static TimestampPoint convertJsonNodeToTimestamppoint(JsonNode timestampNode, JsonNode coordinatesNode) {
-        TimestampPoint timestampPoint = new TimestampPoint();
-
-        Coordinate coordinate = new Coordinate(coordinatesNode.get(0).asDouble(), coordinatesNode.get(1).asDouble());
-        timestampPoint.setPoint(geometryFactory.createPoint(coordinate));
-
-        timestampPoint.setTimestamp(timestampNode.asText());
-        return timestampPoint;
     }
 
     /**
@@ -181,5 +152,49 @@ public class JsonHandler {
         } catch (Exception e) {
             throw new RuntimeException("Error converting EditedParkingSpace to JSON", e);
         }
+    }
+
+    /**
+     * This method gets the parking point data from a geoJSON string.
+     *
+     * @param geoJson a string, which contains parking points and their data
+     * @return a hash map with all processed parking points and their timestamps
+     * @throws JsonProcessingException an error when there is a problem processing the GeoJSON string
+     */
+    public static HashMap<ParkingPoint, Timestamp> getParkingPointsAndTimestampsFromFile(String geoJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(geoJson);
+        JsonNode features = rootNode.path("features");
+
+        HashMap<ParkingPoint, Timestamp> pointTimestampHashMap = new HashMap<>();
+        for (JsonNode feature : features) {
+            JsonNode timestampNode = feature.path("properties").path("DateTime");
+            JsonNode coordinatesNode = feature.path("geometry").path("coordinates");
+            ParkingPoint parkingPoint = convertJsonNodeToParkingPoint(coordinatesNode);
+            Timestamp timestamp = convertJsonNodeToTimestamp(timestampNode);
+            pointTimestampHashMap.put(parkingPoint, timestamp);
+        }
+
+        log.info("Successfully loaded {} timestamp points from JSON file.", pointTimestampHashMap.size());
+        return pointTimestampHashMap;
+    }
+
+    private static ParkingPoint convertJsonNodeToParkingPoint(JsonNode coordinatesNode) {
+        ParkingPoint parkingPoint = new ParkingPoint();
+
+        Coordinate coordinate = new Coordinate(coordinatesNode.get(0).asDouble(), coordinatesNode.get(1).asDouble());
+        parkingPoint.setPoint(geometryFactory.createPoint(coordinate));
+
+        return parkingPoint;
+    }
+
+    private static Timestamp convertJsonNodeToTimestamp(JsonNode timestampNode) {
+        Timestamp timestamp = new Timestamp();
+
+        long milliseconds = Long.parseLong(timestampNode.asText());
+        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.GERMANY);
+        timestamp.setTimestamp(dateFormat.format(milliseconds));
+
+        return timestamp;
     }
 }

@@ -16,7 +16,8 @@ import java.util.List;
 
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.*;
-
+import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_POINTS;
+import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.WKTWriter;
@@ -29,18 +30,15 @@ public class ParkingSpaceService {
 
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
-    private final TimestampPointService timestampPointService;
+    private final ParkingPointService parkingPointService;
     private final GeoDataFile geoDataFile;
-
-    private static final String PARKING_SPACES = "parking_spaces";
-    private static final String TIMESTAMP_POINTS = "timestamp_points";
 
     @Autowired
     public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo,
-        TimestampPointService timestampPointService, GeoDataFile geoDataFile) {
+        ParkingPointService parkingPointService, GeoDataFile geoDataFile) {
         this.resourceLoader = resourceLoader;
         this.parkingSpaceRepo = parkingSpaceRepo;
-        this.timestampPointService = timestampPointService;
+        this.parkingPointService = parkingPointService;
         this.geoDataFile = geoDataFile;
     }
 
@@ -90,9 +88,9 @@ public class ParkingSpaceService {
             loadPolygons(geoJsonData);
             log.info("Successfully loaded all data in '{}'.", PARKING_SPACES);
         } else {
-            log.debug("Loading GeoJSON data into '{}' table...", TIMESTAMP_POINTS);
-            timestampPointService.loadTimestampPoints(geoJsonData);
-            log.info("Successfully loaded all data in '{}'.", TIMESTAMP_POINTS);
+            log.debug("Loading GeoJSON data into '{}' table...", PARKING_POINTS);
+            parkingPointService.loadParkingPoints(geoJsonData);
+            log.info("Successfully loaded all data in '{}'.", PARKING_POINTS);
         }
     }
 
