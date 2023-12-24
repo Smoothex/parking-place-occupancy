@@ -24,7 +24,7 @@ public interface TimestampRepo extends JpaRepository<Timestamp, Long> {
     @Query(value = CREATE_INDEX_SQL, nativeQuery = true)
     void createDbIndex();
 
-    List<Timestamp> getTimestampsByParkingPointId(long parkingPointId);
+    List<Timestamp> getAllByParkingPointId(long parkingPointId);
 
     @Query(value = GET_MAX_ONE_DUPLICATE, nativeQuery = true)
     int getMaxOneDuplicate(@Param("id") long parkingPointId, @Param("timestamp") String timestamp);

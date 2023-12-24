@@ -2,6 +2,8 @@ package org.gradle.backendpostgresqlapi.controller;
 
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
+import org.gradle.backendpostgresqlapi.service.ParkingPointService;
+import org.gradle.backendpostgresqlapi.service.TimestampService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +17,15 @@ import java.util.Optional;
 public class EditedParkingSpaceController {
 
     private final EditedParkingSpaceService editedParkingSpaceService;
+    private final ParkingPointService parkingPointService;
+    private final TimestampService timestampService;
 
     @Autowired
-    public EditedParkingSpaceController(EditedParkingSpaceService editedParkingSpaceService) {
+    public EditedParkingSpaceController(EditedParkingSpaceService editedParkingSpaceService,
+        ParkingPointService parkingPointService, TimestampService timestampService) {
         this.editedParkingSpaceService = editedParkingSpaceService;
+        this.parkingPointService = parkingPointService;
+        this.timestampService = timestampService;
     }
 
     // http://localhost:8080/api/parking-spaces
@@ -82,5 +89,19 @@ public class EditedParkingSpaceController {
         }
 
         return ResponseEntity.notFound().build();
+    }
+
+    // http://localhost:8080/api/parking-spaces/1/parking_points
+    @GetMapping("/{id}/parking_points")
+    public ResponseEntity<List<String>> getAllParkingPointsByEditedParkingSpaceId(@PathVariable long id) {
+        List<String> parkingPoints = parkingPointService.getAllParkingPointsByEditedParkingSpaceId(id);
+        return ResponseEntity.ok(parkingPoints);
+    }
+
+    // http://localhost:8080/api/parking-spaces/1/timestamps
+    @GetMapping("/{parking_point_id}/timestamps")
+    public ResponseEntity<List<String>> getAllTimestampsByParkingPointId(@PathVariable long parking_point_id) {
+        List<String> timestamps = timestampService.getAllTimestampsByParkingPointId(parking_point_id);
+        return ResponseEntity.ok(timestamps);
     }
 }

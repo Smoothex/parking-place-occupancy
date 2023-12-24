@@ -132,7 +132,7 @@ public class JsonHandler {
         ObjectMapper mapper = new ObjectMapper();
 
         // Convert Polygon to JSON
-        String polygonJson = JsonHandler.convertPolygonToJson(editedParkingSpace.getPolygon());
+        String polygonJson = convertPolygonToJson(editedParkingSpace.getPolygon());
 
         try {
             // Construct a JSON object
@@ -196,5 +196,54 @@ public class JsonHandler {
         timestamp.setTimestamp(dateFormat.format(milliseconds));
 
         return timestamp;
+    }
+
+    /**
+     * Converts parking point object to JSON format.
+     *
+     * @param parkingPoint the object to convert
+     * @return a string representation in JSON format
+     */
+    public static String convertParkingPointToJson(ParkingPoint parkingPoint) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            // Construct a JSON object
+            ObjectNode parkingPointJson = mapper.createObjectNode();
+            parkingPointJson.put("id", parkingPoint.getId());
+            parkingPointJson.put("editedParkingSpaceId", parkingPoint.getEditedParkingSpaceId());
+
+            Coordinate coordinate = parkingPoint.getPoint().getCoordinate();
+            String coordinateJson = String.format(Locale.US, "{\"x\": %.15f, \"y\": %.15f},", coordinate.x, coordinate.y);
+            parkingPointJson.put("coordinates", coordinateJson);
+
+            // Convert the whole object to a JSON string
+            return mapper.writeValueAsString(parkingPointJson);
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting ParkingPoint to JSON", e);
+        }
+    }
+
+    /**
+     * Converts parking point object to JSON format.
+     *
+     * @param timestamp the object to convert
+     * @return a string representation in JSON format
+     */
+    public static String convertTimestampToJson(Timestamp timestamp) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            // Construct a JSON object
+            ObjectNode timestampJson = mapper.createObjectNode();
+            timestampJson.put("id", timestamp.getId());
+            timestampJson.put("parkingPointId", timestamp.getParkingPointId());
+            timestampJson.put("timestamp", timestamp.getTimestamp());
+
+            // Convert the whole object to a JSON string
+            return mapper.writeValueAsString(timestampJson);
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting Timestamp to JSON", e);
+        }
     }
 }

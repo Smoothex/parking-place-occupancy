@@ -6,6 +6,7 @@ import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
+import org.gradle.backendpostgresqlapi.util.JsonHandler;
 import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,8 +44,9 @@ public class ParkingPointService {
         log.info("Index for table '{}' created.", PARKING_POINTS);
     }
 
-    public List<ParkingPoint> getAllParkingPointsByEditedParkingSpaceId(long editedParkingSpaceId) {
-        return parkingPointRepo.getParkingPointsByEditedParkingSpaceId(editedParkingSpaceId);
+    public List<String> getAllParkingPointsByEditedParkingSpaceId(long editedParkingSpaceId) {
+        return parkingPointRepo.getParkingPointsByEditedParkingSpaceId(editedParkingSpaceId).
+            stream().map(JsonHandler::convertParkingPointToJson).toList();
     }
 
     public void loadParkingPoints(String geoJsonData) throws JsonProcessingException {

@@ -3,8 +3,11 @@ package org.gradle.backendpostgresqlapi.service;
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.TimestampRepo;
+import org.gradle.backendpostgresqlapi.util.JsonHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.TIMESTAMPS;
 
@@ -32,5 +35,10 @@ public class TimestampService {
         if (timestampRepo.getMaxOneDuplicate(timestamp.getParkingPointId(), timestamp.getTimestamp()) == 0) {
             timestampRepo.save(timestamp);
         }
+    }
+
+    public List<String> getAllTimestampsByParkingPointId(long parkingPointId) {
+        return timestampRepo.getAllByParkingPointId(parkingPointId)
+            .stream().map(JsonHandler::convertTimestampToJson).toList();
     }
 }
