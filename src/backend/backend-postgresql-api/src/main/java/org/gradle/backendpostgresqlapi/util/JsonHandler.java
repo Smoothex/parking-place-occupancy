@@ -7,20 +7,24 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
+import org.gradle.backendpostgresqlapi.entity.Timestamp;
+import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-
-import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.geom.GeometryFactory;
 
 @Slf4j
 public class JsonHandler {
@@ -128,7 +132,7 @@ public class JsonHandler {
         ObjectMapper mapper = new ObjectMapper();
 
         // Convert Polygon to JSON
-        String polygonJson = JsonHandler.convertPolygonToJson(editedParkingSpace.getPolygon());
+        String polygonJson = convertPolygonToJson(editedParkingSpace.getPolygon());
 
         try {
             // Construct a JSON object
@@ -147,6 +151,99 @@ public class JsonHandler {
             return mapper.writeValueAsString(editedParkingSpaceJson);
         } catch (Exception e) {
             throw new RuntimeException("Error converting EditedParkingSpace to JSON", e);
+        }
+    }
+
+    /**
+     * This method gets the parking point data from a geoJSON string.
+     *
+     * @param geoJson a string, which contains parking points and their data
+     * @return a hash map with all processed parking points and their timestamps
+     * @throws JsonProcessingException an error when there is a problem processing the GeoJSON string
+     */
+    public static HashMap<ParkingPoint, Timestamp> getParkingPointsAndTimestampsFromFile(String geoJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(geoJson);
+        JsonNode features = rootNode.path("features");
+
+        HashMap<ParkingPoint, Timestamp> pointTimestampHashMap = new HashMap<>();
+        for (JsonNode feature : features) {
+            JsonNode timestampNode = feature.path("properties").path("DateTime");
+            JsonNode coordinatesNode = feature.path("geometry").path("coordinates");
+            ParkingPoint parkingPoint = convertJsonNodeToParkingPoint(coordinatesNode);
+            Timestamp timestamp = convertJsonNodeToTimestamp(timestampNode);
+            pointTimestampHashMap.put(parkingPoint, timestamp);
+        }
+
+        log.info("Successfully loaded {} parking points and their timestamps from JSON file.", pointTimestampHashMap.size());
+        return pointTimestampHashMap;
+    }
+
+    private static ParkingPoint convertJsonNodeToParkingPoint(JsonNode coordinatesNode) {
+        ParkingPoint parkingPoint = new ParkingPoint();
+
+        Coordinate coordinate = new Coordinate(coordinatesNode.get(0).asDouble(), coordinatesNode.get(1).asDouble());
+        parkingPoint.setPoint(geometryFactory.createPoint(coordinate));
+
+        return parkingPoint;
+    }
+
+    private static Timestamp convertJsonNodeToTimestamp(JsonNode timestampNode) {
+        Timestamp timestamp = new Timestamp();
+
+        long milliseconds = Long.parseLong(timestampNode.asText());
+        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.GERMANY);
+        timestamp.setTimestamp(dateFormat.format(milliseconds));
+
+        return timestamp;
+    }
+
+    /**
+     * Converts parking point object to JSON format.
+     *
+     * @param parkingPoint the object to convert
+     * @return a string representation in JSON format
+     */
+    public static String convertParkingPointToJson(ParkingPoint parkingPoint) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            // Construct a JSON object
+            ObjectNode parkingPointJson = mapper.createObjectNode();
+            parkingPointJson.put("id", parkingPoint.getId());
+            parkingPointJson.put("editedParkingSpaceId", parkingPoint.getEditedParkingSpaceId());
+
+            Coordinate coordinate = parkingPoint.getPoint().getCoordinate();
+            String coordinateJson = String.format(Locale.US, "{\"x\": %.15f, \"y\": %.15f},", coordinate.x, coordinate.y);
+            parkingPointJson.put("coordinates", coordinateJson);
+
+            // Convert the whole object to a JSON string
+            return mapper.writeValueAsString(parkingPointJson);
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting ParkingPoint to JSON", e);
+        }
+    }
+
+    /**
+     * Converts parking point object to JSON format.
+     *
+     * @param timestamp the object to convert
+     * @return a string representation in JSON format
+     */
+    public static String convertTimestampToJson(Timestamp timestamp) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            // Construct a JSON object
+            ObjectNode timestampJson = mapper.createObjectNode();
+            timestampJson.put("id", timestamp.getId());
+            timestampJson.put("parkingPointId", timestamp.getParkingPointId());
+            timestampJson.put("timestamp", timestamp.getTimestamp());
+
+            // Convert the whole object to a JSON string
+            return mapper.writeValueAsString(timestampJson);
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting Timestamp to JSON", e);
         }
     }
 }
