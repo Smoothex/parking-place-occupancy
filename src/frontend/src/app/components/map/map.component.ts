@@ -196,13 +196,7 @@ export class MapComponent {
               console.log(event + 'parse' + parseElement.id);
               polygon.bringToFront();
               console.log(event);
-
               event.target.editing.enable();
-
-              // const simple = this.simplifyGeoPolygon(arrayOfArrays);
-              // simple.forEach((elem: any) => {
-              //   const mark = this.createMarkerPersistentStorage(elem);
-              // });
               if (this.debug) {
                 console.log('orignal', arrayOfArrays);
                 this.addPolygon(arrayOfArrays);
@@ -279,7 +273,12 @@ export class MapComponent {
     this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent
     console.log()
     console.log(this.parkingSpaceData[index])
+    console.log()
+
+    console.log(this.parkingSpaceData[index].new_polygon_event_layer.sourceTarget._latlngs[0])
     //! REST POST call to save it in the database.
+    this.restApi.updateParkingSpaceWithId(this.parkingSpaceData[index].parkingSpaceId,
+      this.parkingSpaceData[index].new_polygon_event_layer.sourceTarget._latlngs[0])
     
   }
 
