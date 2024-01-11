@@ -105,6 +105,22 @@ export class RestAPIService {
       })
     }
 
+  updateParkingSpaceWithId(parkingSpaceId: string, parkingGeometry: any[]) {
+    return new Promise((resolve) => {
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        params: new HttpParams().set("occupied", parkingSpaceId),
+      };
+      const body = {
+        geometry: parkingGeometry
+      }
+      this.http.post(this.apiURL+"parking-spaces/"+parkingSpaceId,body, options).pipe().subscribe({
+        next: (data) => {resolve(data)},
+        error: err => { console.error("error generated", err)}
+      })
+    })
+    
+  }
 
 
 }
