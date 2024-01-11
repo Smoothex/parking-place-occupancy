@@ -7,12 +7,15 @@ export class PlayStorageService {
 
   constructor() { }
 
-  polygon: any
-  setPolygon() {
-    
+  parkingSpaceData: any
+  storeData(data:any) {
+    this.parkingSpaceData = data
+    console.log("service", this.parkingSpaceData)
 
-
-
-   }
+  }
+  
+  getData() {
+    return this.parkingSpaceData
+  }
 }
                        

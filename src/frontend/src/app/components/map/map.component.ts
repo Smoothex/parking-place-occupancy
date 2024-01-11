@@ -3,6 +3,8 @@ import * as L from 'leaflet';
 import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
 import 'leaflet-draw';
 import * as turf from '@turf/turf';
+import { PlayStorageService } from 'src/app/services/playStorage/play-storage.service';
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
@@ -50,34 +52,40 @@ export class MapComponent {
   };
 
   /*
-  * @deprecated will not be used anymore
-  * */
+   * @deprecated will not be used anymore
+   * */
 
   polygonColor: string = 'green';
 
   private initMap(): void {
     this.map = L.map('map').setView([52.54412, 13.352], 15);
-    var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-      maxZoom: 24,
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      attribution: 'Google Satellite'
-    });
+    var satelliteLayer = L.tileLayer(
+      'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      {
+        maxZoom: 24,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Google Satellite',
+      }
+    );
 
-    var defaultLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 24,
-      attribution: 'OpenStreetMap'
-    });
+    var defaultLayer = L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        maxZoom: 24,
+        attribution: 'OpenStreetMap',
+      }
+    );
 
-// Add the default layer to the map
+    // Add the default layer to the map
     defaultLayer.addTo(this.map);
 
-// Create an object with layer names and corresponding layers
+    // Create an object with layer names and corresponding layers
     var baseLayers = {
-      "Satellite": satelliteLayer,
-      "Default": defaultLayer
+      Satellite: satelliteLayer,
+      Default: defaultLayer,
     };
 
-// Add layer control to switch between different layers
+    // Add layer control to switch between different layers
     L.control.layers(baseLayers).addTo(this.map);
     this.map.on('click', this.mapClickInteraction.bind(this));
   }
@@ -92,13 +100,13 @@ export class MapComponent {
       alert('The last edited polygon will be edited permanently');
       this.editPolygonEvent(this.activePolygonInteractionLayer);
       this.activePolygonInteractionLayer.target.editing.disable();
-      console.log("editing disabled")
+      console.log('editing disabled');
       this.activePolygonInteractionLayer = undefined;
       // TODO: add editing check here
     }
   }
 
-  constructor(private restApi: RestAPIService) {}
+  constructor(private restApi: RestAPIService, private storage:PlayStorageService, private router: Router) {}
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -120,7 +128,7 @@ export class MapComponent {
   // Function to reset polygon color on mouseout
   resetFeature(e: any) {
     let layer = e.target;
-    let color = layer.options.color
+    let color = layer.options.color;
 
     layer.setStyle({
       fillColor: color,
@@ -140,7 +148,6 @@ export class MapComponent {
           .getParkingSpaceAreaWithId(parseElement.id)
           .then(
             (areaData) => {
-              // console.log(areaData)
               return areaData;
             },
             (error) => {}
@@ -168,26 +175,25 @@ export class MapComponent {
                   '<br>' +
                   ' <button (click)="`${enable}`">Edit</button>'
               );
-            let polygonColor:string = 'green'
+            let polygonColor: string = 'green';
             if (parseElement.occupied) {
               polygonColor = 'red';
             }
             polygon.setStyle({
               fillColor: polygonColor,
               color: polygonColor,
-              opacity:1,
+              opacity: 1,
               weight: 3,
             });
             polygon.on({
-              mouseover:(event:any)=>{
-                this.highlightFeature(event)
+              mouseover: (event: any) => {
+                this.highlightFeature(event);
               },
-              mouseout:(event:any)=>{
-                this.resetFeature(event)
-              }
+              mouseout: (event: any) => {
+                this.resetFeature(event);
+              },
             });
             polygon.on('click', (event) => {
-
               if (this.activePolygonInteractionLayer != undefined) {
                 this.mapClickInteraction(event);
               } else {
@@ -210,11 +216,19 @@ export class MapComponent {
               ...parseElement,
               polygon_layer: polygon,
               new_polygon_event_layer: polygon,
+              simplified_initial_coordinates: simple,
+              simplified_edited_coordinates: simple, // will be updated with every update in polygon in one user session
             };
             this.parkingSpaceData.push(obj);
+
           });
       });
       console.log('parking space data ', this.parkingSpaceData);
+      this.storage.storeData(this.parkingSpaceData)
+      setTimeout(() => {
+        
+        // this.router.navigate(['/play'])
+      }, 500);
 
     });
   }
@@ -264,24 +278,40 @@ export class MapComponent {
     /*
      * TODO: remove markers being placed on the same spot ~ done
      * TODO: find the coordinate in the real polygon and edit/replace them
-     ! * TODO: update the data value array ~ Not implemented, have to do think about the redo feature
+     ! * TODO: update the data value array ~ Not implemented, have to do think about the redo feature ~ not a necessary function 
      * TODO: re-create only the particular array~ no need as the old polygon shape can not be agin defined
      * TODO: add checks for not creating an impossible polygon
      */
-    const polygonID = polygonEvent.sourceTarget._leaflet_id
-    const index = this.parkingSpaceData.findIndex((item: any) => item.polygon_layer._leaflet_id === polygonID)
-    this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent
-    console.log()
-    console.log(this.parkingSpaceData[index])
-    console.log()
+    const polygonID = polygonEvent.sourceTarget._leaflet_id;
+    const index = this.parkingSpaceData.findIndex(
+      (item: any) => item.polygon_layer._leaflet_id === polygonID
+    );
+    this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent;
+    // ! TODO : remove when backend capable to do it
+    this.parkingSpaceData[index].simplified_edited_coordinates =
+      this.parkingSpaceData[
+        index
+      ].new_polygon_event_layer.sourceTarget._latlngs[0];
 
-    console.log(this.parkingSpaceData[index].new_polygon_event_layer.sourceTarget._latlngs[0])
-    //! REST POST call to save it in the database.
-    this.restApi.updateParkingSpaceWithId(this.parkingSpaceData[index].parkingSpaceId,
-      this.parkingSpaceData[index].new_polygon_event_layer.sourceTarget._latlngs[0])
-    
+    console.log(this.parkingSpaceData[index]);
+    const newGeometry: any[] = this.parkingSpaceData[
+      index
+    ].new_polygon_event_layer.sourceTarget._latlngs[0].map((item: any) => {
+      return [item.lng, item.lat];
+    });
+
+    //TODO: REST POST call to save it in the database. ~ done
+    this.restApi
+      .updateParkingSpaceWithId(
+        this.parkingSpaceData[index].parkingSpaceId,
+        newGeometry
+      )
+      .then((result) => {
+       this.parkingSpaceData[index].simplified_edited_coordinates =newGeometry.map((item: any) => {
+          return [item[1],item[0]]
+        })
+      });
   }
-
   // future feature request
   editableLayer() {
     let editableLayers = new L.FeatureGroup();
@@ -299,7 +329,7 @@ export class MapComponent {
       position: 'topright',
       draw: {
         polyline: false,
-        polygon: false/* {
+        polygon: false /* {
           allowIntersection: false, // Restricts shapes to simple polygons
           drawError: {
             color: '#e1e100', // Color the shape will turn when intersects
@@ -309,14 +339,14 @@ export class MapComponent {
             color: 'blue',
           },
         } */,
-        marker: false,/* {
+        marker: false /* {
           icon: new MyCustomMarker(),
-        }, */
+        }, */,
         circle: false,
         rectangle: false,
         circlemarker: false,
       },
-      edit: false/* {
+      edit: false /* {
         featureGroup: editableLayers, //REQUIRED!!
         remove: false,
       } */,
