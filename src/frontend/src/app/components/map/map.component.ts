@@ -187,7 +187,7 @@ export class MapComponent {
               }
             });
             polygon.on('click', (event) => {
-              // TODO: a boolean flag
+
               if (this.activePolygonInteractionLayer != undefined) {
                 this.mapClickInteraction(event);
               } else {
@@ -277,11 +277,10 @@ export class MapComponent {
     const polygonID = polygonEvent.sourceTarget._leaflet_id
     const index = this.parkingSpaceData.findIndex((item: any) => item.polygon_layer._leaflet_id === polygonID)
     this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent
-    // TODO : here need to add the  coordiates back to the simplify coordinates and then to the main parking space data  , whch will send post
     console.log()
     console.log(this.parkingSpaceData[index])
     //! REST POST call to save it in the database.
-
+    
   }
 
   // future feature request
@@ -301,7 +300,7 @@ export class MapComponent {
       position: 'topright',
       draw: {
         polyline: false,
-        polygon: {
+        polygon: false/* {
           allowIntersection: false, // Restricts shapes to simple polygons
           drawError: {
             color: '#e1e100', // Color the shape will turn when intersects
@@ -310,18 +309,18 @@ export class MapComponent {
           shapeOptions: {
             color: 'blue',
           },
-        },
-        marker: {
+        } */,
+        marker: false,/* {
           icon: new MyCustomMarker(),
-        },
+        }, */
         circle: false,
         rectangle: false,
         circlemarker: false,
       },
-      edit: {
+      edit: false/* {
         featureGroup: editableLayers, //REQUIRED!!
         remove: false,
-      },
+      } */,
     };
     let drawControl = new L.Control.Draw(options);
     this.map.addControl(drawControl);
