@@ -14,14 +14,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.gradle.backendpostgresqlapi.util.TableNameUtil.EDITED_PARKING_SPACES;
+
 @Slf4j
 @Service
 public class EditedParkingSpaceService {
 
     private final EditedParkingSpaceRepo editedParkingSpaceRepo;
     private final ParkingSpaceRepo parkingSpaceRepo;
-
-    private static final String TABLE_NAME = "edited_parking_spaces";
 
     @Autowired
     public EditedParkingSpaceService(ParkingSpaceRepo parkingSpaceRepo, EditedParkingSpaceRepo editedParkingSpaceRepo) {
@@ -42,18 +42,18 @@ public class EditedParkingSpaceService {
                     EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(existingParkingSpace);
                     editedParkingSpaceRepo.save(editedParkingSpace);
                 } else {
-                    log.warn("Parking space from first table not copied! A parking space with the same id already exists in the '{}' table.", TABLE_NAME);
+                    log.warn("Parking space from first table not copied! A parking space with the same id already exists in the '{}' table.", EDITED_PARKING_SPACES);
                 }
             } else {
-                throw new IOException(String.format("Error on copying data into '%s'.", TABLE_NAME));
+                throw new IOException(String.format("Error on copying data into '%s'.", EDITED_PARKING_SPACES));
             }
         }
     }
 
     public void calculateAndUpdateAreaColumnById(long id) {
-        log.debug("Calculating and updating area column in '{}' table...", TABLE_NAME);
+        log.debug("Calculating and updating area column in '{}' table...", EDITED_PARKING_SPACES);
         editedParkingSpaceRepo.updateAreaColumnById(id);
-        log.info("Area column values were calculated and set accordingly for '{}'.", TABLE_NAME);
+        log.info("Area column values were calculated and set accordingly for '{}'.", EDITED_PARKING_SPACES);
     }
 
     public List<EditedParkingSpace> getAllEditedParkingSpaces() {
