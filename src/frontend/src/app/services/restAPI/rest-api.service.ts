@@ -113,7 +113,7 @@ export class RestAPIService {
       const body = {
         geometry: parkingGeometry
       }
-      this.http.post(this.apiURL+"parking-spaces/"+parkingSpaceId,body, options).pipe().subscribe({
+      this.http.post(this.apiURL+"parking-spaces/"+parkingSpaceId+"/polygon",body, options).pipe().subscribe({
         next: (data) => {resolve(data)},
         error: err => { console.error("error generated", err)}
       })
