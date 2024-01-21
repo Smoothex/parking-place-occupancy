@@ -27,7 +27,7 @@ public class EditedParkingSpace {
     @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "edit_coordinates", nullable = false)
     private Polygon polygon;
 
-    @Column(name = "edit_occupied")
+    @Column(columnDefinition = "boolean default false", name = "edit_occupied")
     private boolean occupied;
 
     @Column(name = "edit_area")

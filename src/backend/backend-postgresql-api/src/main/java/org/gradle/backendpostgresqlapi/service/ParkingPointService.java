@@ -2,11 +2,12 @@ package org.gradle.backendpostgresqlapi.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
+import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
 import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
-import org.gradle.backendpostgresqlapi.util.JsonHandler;
+import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
 import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,8 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getParkingPointsAndTimestampsFromFile;
-import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_POINTS;
-import static org.gradle.backendpostgresqlapi.util.TableNameUtil.TIMESTAMPS;
+import static org.gradle.backendpostgresqlapi.util.TableNameUtil.*;
 
 @Slf4j
 @Service
@@ -44,9 +44,9 @@ public class ParkingPointService {
         log.info("Index for table '{}' created.", PARKING_POINTS);
     }
 
-    public List<String> getAllParkingPointsByEditedParkingSpaceId(long editedParkingSpaceId) {
+    public List<ParkingPointDto> getAllParkingPointsByEditedParkingSpaceIdAsDto(long editedParkingSpaceId) {
         return parkingPointRepo.getParkingPointsByEditedParkingSpaceId(editedParkingSpaceId).
-            stream().map(JsonHandler::convertParkingPointToJson).toList();
+            stream().map(DtoConverterUtil::convertToDto).toList();
     }
 
     public void loadParkingPoints(String geoJsonData) throws JsonProcessingException {
