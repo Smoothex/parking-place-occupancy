@@ -2,6 +2,7 @@ package org.gradle.backendpostgresqlapi;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.gradle.backendpostgresqlapi.configuration.GeoDataFile;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
@@ -15,11 +16,13 @@ import org.springframework.context.annotation.Bean;
 
 import java.util.List;
 
+import static org.gradle.backendpostgresqlapi.util.DataLoaderUtil.loadDataIntoDatabase;
+
 @Slf4j
 @SpringBootApplication
 public class DatabaseConnection {
 
-    private static final boolean LOADING_DATA_REQUIRED = false;
+    private static final boolean LOADING_DATA_REQUIRED = true;
     private static final boolean PRINT_EDITED_PARKING_SPACES = false;
     private static final boolean PRINT_PARKING_SPACES = false;
 
@@ -29,7 +32,7 @@ public class DatabaseConnection {
 
     @Bean
     ApplicationRunner initializer(ParkingSpaceService parkingSpaceService, EditedParkingSpaceService editedParkingSpaceService,
-        ParkingPointService parkingPointService, TimestampService timestampService) {
+        ParkingPointService parkingPointService, TimestampService timestampService, GeoDataFile geoDataFile) {
         return args -> {
             // Initialize indexes for some tables
             parkingSpaceService.initializeDatabaseIndex();
@@ -37,23 +40,19 @@ public class DatabaseConnection {
             timestampService.initializeDbIndex();
 
             if (LOADING_DATA_REQUIRED) {
-                // Load data into parking_spaces database
-                parkingSpaceService.loadDataIntoDatabase();
-
-                // Calculate the area of the inserted park spaces
-                parkingSpaceService.calculateAndUpdateAreaColumn();
-
-                // Load data into edited_parking_spaces database
-                editedParkingSpaceService.copyDataIntoDatabase();
+                // Data is loaded regarding the content of the file in the db
+                List<String> filePaths = geoDataFile.getPaths();
+                loadDataIntoDatabase(filePaths, parkingSpaceService, editedParkingSpaceService, parkingPointService);
             }
 
             if (PRINT_EDITED_PARKING_SPACES) {
-                // Now retrieve and print all edited parking spaces.
+                // Now retrieve and print all edited parking spaces
                 List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();
                 editedParkingSpaces.forEach(eps -> System.out.println(eps.toString()));
             }
 
             if (PRINT_PARKING_SPACES) {
+                // Now retrieve and print all parking spaces.
                 List<ParkingSpace> parkingSpaces = parkingSpaceService.getAllParkingSpaces();
                 parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
             }
