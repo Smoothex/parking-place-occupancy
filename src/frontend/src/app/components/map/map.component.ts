@@ -201,8 +201,11 @@ export class MapComponent {
               }
               console.log(event + 'parse' + parseElement.id);
               polygon.bringToFront();
+
               console.log(event);
               event.target.editing.enable();
+              // TODO: add timestamp component here 
+              // this.restApi.getTimestampData(p)
               if (this.debug) {
                 console.log('orignal', arrayOfArrays);
                 this.addPolygon(arrayOfArrays);

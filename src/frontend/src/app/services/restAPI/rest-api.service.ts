@@ -108,17 +108,30 @@ export class RestAPIService {
   updateParkingSpaceWithId(parkingSpaceId: string, parkingGeometry: any[]) {
     return new Promise((resolve) => {
       const options = {
-        params: new HttpParams().set("occupied", parkingSpaceId),
+        // params: new HttpParams().set("occupied", parkingSpaceId),
       };
       const body = {
-        geometry: parkingGeometry
+         parkingGeometry
       }
-      this.http.post(this.apiURL+"parking-spaces/"+parkingSpaceId+"/polygon",body, options).pipe().subscribe({
+      this.http.patch(this.apiURL+"parking-spaces/"+parkingSpaceId+"/polygon",body).pipe().subscribe({
         next: (data) => {resolve(data)},
         error: err => { console.error("error generated", err)}
       })
     })
     
+  }
+  getTimestampData(parkingSpaceId: string) {
+    return new Promise((resolve) => {
+      console.log("getTimestampData")
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        // params: new HttpParams().set("occupied", occupied),
+      };
+      this.http.get(this.apiURL+"parking-spaces/"+parkingSpaceId+"/timestamps", options).pipe().subscribe({
+        next: (data) => { resolve(data);  console.log(data)},
+        error: err => { console.error("error generated", err)}
+      })
+    })
   }
 
 

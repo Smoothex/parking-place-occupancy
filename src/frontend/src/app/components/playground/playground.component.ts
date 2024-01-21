@@ -68,7 +68,7 @@ export class PlaygroundComponent {
 // Add layer control to switch between different layers
     L.control.layers(baseLayers).addTo(this.map);
 
-    this.checkOverlappingPolygon()
+    // this.checkOverlappingPolygon()
 
   }
 
@@ -101,7 +101,7 @@ export class PlaygroundComponent {
     this.parkingSpaceData= this.storage.getData()
     this.initMap();
     this.addPolygon()
-    this.checkOverlappingPolygon()
+    // this.checkOverlappingPolygon()
 
 
   }
