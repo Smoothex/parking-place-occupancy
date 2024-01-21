@@ -19,7 +19,9 @@ import java.util.List;
 @SpringBootApplication
 public class DatabaseConnection {
 
-    private static final boolean LOAD_DATA_FIRST_TIME = true;
+    private static final boolean LOADING_DATA_REQUIRED = false;
+    private static final boolean PRINT_EDITED_PARKING_SPACES = false;
+    private static final boolean PRINT_PARKING_SPACES = false;
 
     public static void main(String[] args) {
         SpringApplication.run(DatabaseConnection.class, args);
@@ -28,13 +30,13 @@ public class DatabaseConnection {
     @Bean
     ApplicationRunner initializer(ParkingSpaceService parkingSpaceService, EditedParkingSpaceService editedParkingSpaceService,
         ParkingPointService parkingPointService, TimestampService timestampService) {
-    return args -> {
+        return args -> {
             // Initialize indexes for some tables
             parkingSpaceService.initializeDatabaseIndex();
             parkingPointService.initializeDbIndex();
             timestampService.initializeDbIndex();
 
-            if (LOAD_DATA_FIRST_TIME) {
+            if (LOADING_DATA_REQUIRED) {
                 // Load data into parking_spaces database
                 parkingSpaceService.loadDataIntoDatabase();
 
@@ -45,12 +47,18 @@ public class DatabaseConnection {
                 editedParkingSpaceService.copyDataIntoDatabase();
             }
 
-            // Now retrieve and print all edited parking spaces.
-            List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();
-            editedParkingSpaces.forEach(eps -> System.out.println(eps.toString()));
+            if (PRINT_EDITED_PARKING_SPACES) {
+                // Now retrieve and print all edited parking spaces.
+                List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpaces();
+                editedParkingSpaces.forEach(eps -> System.out.println(eps.toString()));
+            }
 
-            //List<ParkingSpace> parkingSpaces = parkingSpaceService.getAllParkingSpaces();
-            //parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
+            if (PRINT_PARKING_SPACES) {
+                List<ParkingSpace> parkingSpaces = parkingSpaceService.getAllParkingSpaces();
+                parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
+            }
+
+            System.out.println("Program is running!");
         };
     }
 }

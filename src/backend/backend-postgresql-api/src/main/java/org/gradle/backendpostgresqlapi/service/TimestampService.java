@@ -1,9 +1,10 @@
 package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.TimestampRepo;
-import org.gradle.backendpostgresqlapi.util.JsonHandler;
+import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +38,8 @@ public class TimestampService {
         }
     }
 
-    public List<String> getAllTimestampsByParkingPointId(long parkingPointId) {
+    public List<TimestampDto> getAllTimestampsByParkingPointIdAsDto(long parkingPointId) {
         return timestampRepo.getAllByParkingPointId(parkingPointId)
-            .stream().map(JsonHandler::convertTimestampToJson).toList();
+            .stream().map(DtoConverterUtil::convertToDto).toList();
     }
 }
