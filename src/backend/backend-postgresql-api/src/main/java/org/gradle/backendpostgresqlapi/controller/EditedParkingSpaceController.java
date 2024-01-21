@@ -1,15 +1,23 @@
 package org.gradle.backendpostgresqlapi.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
+import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
+import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
 import org.gradle.backendpostgresqlapi.service.TimestampService;
+import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
+import static org.gradle.backendpostgresqlapi.util.DtoConverterUtil.convertToDto;
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.convertJsonNodeToPolygon;
 
 @RestController
 @RequestMapping("/api/parking-spaces")
@@ -30,16 +38,19 @@ public class EditedParkingSpaceController {
 
     // http://localhost:8080/api/parking-spaces
     @GetMapping
-    public ResponseEntity<List<String>> getAllEditedParkingSpaces() {
-        List<String> editedParkingSpaces = editedParkingSpaceService.getAllEditedParkingSpacesAsJson();
-        return ResponseEntity.ok(editedParkingSpaces);
+    public ResponseEntity<List<EditedParkingSpaceDto>> getAllEditedParkingSpaces() {
+        List<EditedParkingSpaceDto> editedParkingSpaceDtos = editedParkingSpaceService.getAllEditedParkingSpacesAsDto();
+        if (editedParkingSpaceDtos.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(editedParkingSpaceDtos);
     }
 
     // http://localhost:8080/api/parking-spaces/1
     @GetMapping("/{id}")
-    public ResponseEntity<String> getEditedParkingSpaceById(@PathVariable("id") long id) {
-        Optional<String> editedParkingSpace = editedParkingSpaceService.getEditedParkingSpaceByIdAsJson(id);
-        return editedParkingSpace
+    public ResponseEntity<EditedParkingSpaceDto> getEditedParkingSpaceById(@PathVariable("id") long id) {
+        Optional<EditedParkingSpaceDto> editedParkingSpaceDto = editedParkingSpaceService.getEditedParkingSpaceByIdAsDto(id);
+        return editedParkingSpaceDto
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -55,21 +66,24 @@ public class EditedParkingSpaceController {
 
     // http://localhost:8080/api/parking-spaces/search?occupied=true
     @GetMapping("/search")
-    public ResponseEntity<List<String>> findEditedParkingSpacesByOccupancy(@RequestParam("occupied") boolean occupied) {
-        List<String> editedParkingSpaces = editedParkingSpaceService.getEditedParkingSpacesByOccupancyAsJson(occupied);
-        if (editedParkingSpaces.isEmpty()) {
+    public ResponseEntity<List<EditedParkingSpaceDto>> findEditedParkingSpacesByOccupancy(@RequestParam("occupied") boolean occupied) {
+        List<EditedParkingSpaceDto> editedParkingSpaceDtos = editedParkingSpaceService.getEditedParkingSpacesByOccupancyAsDto(occupied);
+        if (editedParkingSpaceDtos.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.ok(editedParkingSpaces);
+        return ResponseEntity.ok(editedParkingSpaceDtos);
     }
 
     // http://localhost:8080/api/parking-spaces/1/occupancy?occupied=true
     @PatchMapping("/{id}/occupancy")
-    public ResponseEntity<EditedParkingSpace> updateOccupancyStatus(@PathVariable long id, @RequestParam boolean occupied) {
-        EditedParkingSpace updatedParkingSpace = editedParkingSpaceService.updateOccupancyStatus(id, occupied);
-
-        if (updatedParkingSpace != null) {
-            return ResponseEntity.ok(updatedParkingSpace);
+    public ResponseEntity<EditedParkingSpaceDto> updateOccupancyStatus(@PathVariable long id, @RequestParam boolean occupied) {
+        try {
+            EditedParkingSpace updatedParkingSpace = editedParkingSpaceService.updateOccupancyStatus(id, occupied);
+            if (updatedParkingSpace != null) {
+                return ResponseEntity.ok(convertToDto(updatedParkingSpace));
+            }
+        } catch(IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         }
 
         return ResponseEntity.notFound().build();
@@ -77,31 +91,40 @@ public class EditedParkingSpaceController {
 
     // http://localhost:8080/api/parking-spaces/1/polygon
     @PatchMapping("/{id}/polygon")
-    public ResponseEntity<EditedParkingSpace> updatePolygonCoordinates(@PathVariable long id,
-        @RequestBody EditedParkingSpace parkingSpaceWithChangedCoordinates) {
-        //todo consider what we will receive in the body
-        EditedParkingSpace updatedParkingSpace = editedParkingSpaceService.updatePolygonCoordinates(id,
-            parkingSpaceWithChangedCoordinates);
+    public ResponseEntity<EditedParkingSpaceDto> updatePolygonCoordinates(@PathVariable long id,
+        @RequestBody JsonNode polygonWithChangedCoordinates) {
 
-        if (updatedParkingSpace != null) {
-            editedParkingSpaceService.calculateAndUpdateAreaColumnById(updatedParkingSpace.getId());
-            return ResponseEntity.ok(updatedParkingSpace);
+        // convert new coordinates to a polygon
+        Polygon editedPolygon = convertJsonNodeToPolygon(polygonWithChangedCoordinates);
+
+        try {
+            // update coordinates and re-calculate area
+            editedParkingSpaceService.updatePolygonCoordinates(id, editedPolygon);
+            editedParkingSpaceService.calculateAndUpdateAreaColumnById(id);
+
+            Optional<EditedParkingSpaceDto> updatedParkingSpaceDto = editedParkingSpaceService.getEditedParkingSpaceByIdAsDto(id);
+			return updatedParkingSpaceDto.map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
+
+        } catch(IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         }
-
-        return ResponseEntity.notFound().build();
     }
 
     // http://localhost:8080/api/parking-spaces/1/parking_points
-    @GetMapping("/{id}/parking_points")
-    public ResponseEntity<List<String>> getAllParkingPointsByEditedParkingSpaceId(@PathVariable long id) {
-        List<String> parkingPoints = parkingPointService.getAllParkingPointsByEditedParkingSpaceId(id);
-        return ResponseEntity.ok(parkingPoints);
+    @GetMapping("/{edited_space_id}/parking_points")
+    public ResponseEntity<List<ParkingPointDto>> getAllParkingPointsByEditedParkingSpaceId(@PathVariable long edited_space_id) {
+        List<ParkingPointDto> parkingPointDtos = parkingPointService.getAllParkingPointsByEditedParkingSpaceIdAsDto(edited_space_id);
+        if (parkingPointDtos.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(parkingPointDtos);
     }
 
     // http://localhost:8080/api/parking-spaces/1/timestamps
     @GetMapping("/{parking_point_id}/timestamps")
-    public ResponseEntity<List<String>> getAllTimestampsByParkingPointId(@PathVariable long parking_point_id) {
-        List<String> timestamps = timestampService.getAllTimestampsByParkingPointId(parking_point_id);
-        return ResponseEntity.ok(timestamps);
+    public ResponseEntity<List<TimestampDto>> getAllTimestampsByParkingPointId(@PathVariable long parking_point_id) {
+        List<TimestampDto> timestampDtos = timestampService.getAllTimestampsByParkingPointIdAsDto(parking_point_id);
+        return ResponseEntity.ok(timestampDtos);
     }
 }

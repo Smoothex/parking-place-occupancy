@@ -1,11 +1,13 @@
 package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
-import org.gradle.backendpostgresqlapi.util.JsonHandler;
+import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
+import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -60,9 +62,9 @@ public class EditedParkingSpaceService {
         return editedParkingSpaceRepo.findAll();
     }    
 
-    public List<String> getAllEditedParkingSpacesAsJson() {
+    public List<EditedParkingSpaceDto> getAllEditedParkingSpacesAsDto() {
         return getAllEditedParkingSpaces().stream()
-                            .map(JsonHandler::convertEditedParkingSpaceToJson)
+                            .map(DtoConverterUtil::convertToDto)
                             .collect(Collectors.toList());
     }
 
@@ -70,15 +72,15 @@ public class EditedParkingSpaceService {
         return editedParkingSpaceRepo.findById(id);
     }
 
-    public Optional<String> getEditedParkingSpaceByIdAsJson(long id) {
+    public Optional<EditedParkingSpaceDto> getEditedParkingSpaceByIdAsDto(long id) {
         return getEditedParkingSpaceById(id)
-                             .map(JsonHandler::convertEditedParkingSpaceToJson);
+                             .map(DtoConverterUtil::convertToDto);
     }
 
-    public List<String> getEditedParkingSpacesByOccupancyAsJson(boolean occupied) {
+    public List<EditedParkingSpaceDto> getEditedParkingSpacesByOccupancyAsDto(boolean occupied) {
         List<EditedParkingSpace> editedParkingSpaces = editedParkingSpaceRepo.findByOccupied(occupied);
         return editedParkingSpaces.stream()
-                    .map(JsonHandler::convertEditedParkingSpaceToJson)
+                    .map(DtoConverterUtil::convertToDto)
                     .collect(Collectors.toList());
     }
 
@@ -96,12 +98,12 @@ public class EditedParkingSpaceService {
         return getEditedParkingSpaceById(id).map(EditedParkingSpace::getArea).map(Object::toString);
     }
 
-    public EditedParkingSpace updatePolygonCoordinates(long id, EditedParkingSpace parkingSpaceWithChangedCoordinates) {
+    public EditedParkingSpace updatePolygonCoordinates(long id, Polygon polygonWithChangedCoordinates) {
         Optional<EditedParkingSpace> editedParkingSpaceOptional = getEditedParkingSpaceById(id);
 
         if (editedParkingSpaceOptional.isPresent()) {
             EditedParkingSpace editedParkingSpace = editedParkingSpaceOptional.get();
-            editedParkingSpace.setPolygon(parkingSpaceWithChangedCoordinates.getPolygon());
+            editedParkingSpace.setPolygon(polygonWithChangedCoordinates);
             return editedParkingSpaceRepo.save(editedParkingSpace);
         }
         return null;
