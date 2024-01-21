@@ -1,5 +1,6 @@
 package org.gradle.backendpostgresqlapi.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.convertJsonNodeToPolygon;
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.EDITED_PARKING_SPACES;
 
 @Slf4j
@@ -98,15 +100,20 @@ public class EditedParkingSpaceService {
         return getEditedParkingSpaceById(id).map(EditedParkingSpace::getArea).map(Object::toString);
     }
 
-    public EditedParkingSpace updatePolygonCoordinates(long id, Polygon polygonWithChangedCoordinates) {
+    public boolean updatePolygonCoordinates(long id, JsonNode polygonWithChangedCoordinates) {
         Optional<EditedParkingSpace> editedParkingSpaceOptional = getEditedParkingSpaceById(id);
 
         if (editedParkingSpaceOptional.isPresent()) {
             EditedParkingSpace editedParkingSpace = editedParkingSpaceOptional.get();
-            editedParkingSpace.setPolygon(polygonWithChangedCoordinates);
-            return editedParkingSpaceRepo.save(editedParkingSpace);
+
+            // convert new coordinates to a polygon
+            Polygon editedPolygon = convertJsonNodeToPolygon(polygonWithChangedCoordinates);
+
+            editedParkingSpace.setPolygon(editedPolygon);
+            editedParkingSpaceRepo.save(editedParkingSpace);
+            return true;
         }
-        return null;
+        return false;
     }
 
     private EditedParkingSpace convertToEditedParkingSpace(ParkingSpace parkingSpace) {

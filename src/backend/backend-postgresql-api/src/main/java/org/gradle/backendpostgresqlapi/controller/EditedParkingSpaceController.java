@@ -8,7 +8,6 @@ import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
 import org.gradle.backendpostgresqlapi.service.TimestampService;
-import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.gradle.backendpostgresqlapi.util.DtoConverterUtil.convertToDto;
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.convertJsonNodeToPolygon;
 
 @RestController
 @RequestMapping("/api/parking-spaces")
@@ -94,12 +92,12 @@ public class EditedParkingSpaceController {
     public ResponseEntity<EditedParkingSpaceDto> updatePolygonCoordinates(@PathVariable long id,
         @RequestBody JsonNode polygonWithChangedCoordinates) {
 
-        // convert new coordinates to a polygon
-        Polygon editedPolygon = convertJsonNodeToPolygon(polygonWithChangedCoordinates);
-
         try {
             // update coordinates and re-calculate area
-            editedParkingSpaceService.updatePolygonCoordinates(id, editedPolygon);
+            if (!editedParkingSpaceService.updatePolygonCoordinates(id, polygonWithChangedCoordinates)) {
+                return ResponseEntity.notFound().build();
+            }
+
             editedParkingSpaceService.calculateAndUpdateAreaColumnById(id);
 
             Optional<EditedParkingSpaceDto> updatedParkingSpaceDto = editedParkingSpaceService.getEditedParkingSpaceByIdAsDto(id);
