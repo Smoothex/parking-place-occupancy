@@ -3,6 +3,7 @@ import * as L from 'leaflet';
 import { RestAPIService } from 'src/app/services/restAPI/rest-api.service';
 import 'leaflet-draw';
 import * as turf from '@turf/turf';
+import { PlayStorageService } from 'src/app/services/playStorage/play-storage.service';
 
 @Component({
   selector: 'app-playground',
@@ -15,7 +16,8 @@ export class PlaygroundComponent {
   private markerLayer: any = [];
   private parkingSpaceData: any = [];
   editing:boolean = false;
-  drawnItems:any
+  drawnItems: any
+
 
   markerIcon = {
     draggable: true,
@@ -31,6 +33,7 @@ export class PlaygroundComponent {
 
   private initMap(): void {
     this.map = L.map('map').setView(this.tryArray[0], 15);
+
     // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     //   maxZoom: 24,
     //   attribution:
@@ -65,7 +68,7 @@ export class PlaygroundComponent {
 // Add layer control to switch between different layers
     L.control.layers(baseLayers).addTo(this.map);
 
-
+    // this.checkOverlappingPolygon()
 
   }
 
@@ -92,11 +95,14 @@ export class PlaygroundComponent {
     this.map.removeLayer(this.markerLayer);
   }
 
-  constructor(private restApi: RestAPIService) {}
+  constructor(private restApi: RestAPIService, private storage: PlayStorageService) {}
 
   ngAfterViewInit(): void {
+    this.parkingSpaceData= this.storage.getData()
     this.initMap();
     this.addPolygon()
+    // this.checkOverlappingPolygon()
+
 
   }
    tryArray:any[] =[
@@ -192,7 +198,7 @@ export class PlaygroundComponent {
       52.54266132492521,
       13.350560198412687
     ]
-  ]
+   ]
   addPolygon() {
     const originalCoords:any = this.tryArray
 
@@ -231,6 +237,36 @@ export class PlaygroundComponent {
     });
     return marker;
     // this.markerLayer.push(marker);
+  }
+
+
+
+  checkOverlappingPolygon() {
+    this.parkingSpaceData = this.storage.getData()
+    console.log("starting check")
+    console.log(this.parkingSpaceData)
+
+
+    this.parkingSpaceData.forEach((element: any) => {
+      const element1 = element;
+      const poly1 = turf.polygon([element1.simplified_initial_coordinates])
+      console.log("poly1", poly1)
+      // TODO get data as per the indices 
+      this.parkingSpaceData.forEach((element2: any,index:number) => {
+
+        const poly2 = turf.polygon([element2.simplified_initial_coordinates])
+        // console.log("poly2", poly2)
+        const flag_intersection = turf.booleanOverlap(poly1, poly2)
+        console.log("Intersecting or not ",flag_intersection, poly1, poly2)
+        if (flag_intersection) {
+          console.error("Intersecting or not ",flag_intersection, poly1, poly2)
+        }
+  
+        
+      })
+      
+    });
+ 
   }
 
 }
