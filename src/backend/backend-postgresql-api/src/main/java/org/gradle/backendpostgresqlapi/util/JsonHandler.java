@@ -72,7 +72,7 @@ public class JsonHandler {
             Polygon polygon = convertJsonNodeToPolygon(coordinates);
             polygons.add(polygon);
         }
-        log.info("Successfully loaded {} parking spaces from JSON file.", polygons.size());
+        log.info("Successfully read {} parking spaces from JSON file.", polygons.size());
         return polygons;
     }
 
@@ -120,7 +120,7 @@ public class JsonHandler {
             pointTimestampHashMap.put(parkingPoint, timestamp);
         }
 
-        log.info("Successfully loaded {} parking points and their timestamps from JSON file.", pointTimestampHashMap.size());
+        log.info("Successfully read {} parking points and their timestamps from JSON file.", pointTimestampHashMap.size());
         return pointTimestampHashMap;
     }
 

@@ -9,14 +9,13 @@ services:
     environment:
       POSTGRES_DB: parking_spots_db
       POSTGRES_USER: parkuser
-      POSTGRES_HOST_AUTH_METHOD: trust
-      PGUSER: postgres
+      POSTGRES_PASSWORD: parkpass123
     ports:
       - "32768:5432"
     volumes:
       - db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 15s
       timeout: 20s
       retries: 5

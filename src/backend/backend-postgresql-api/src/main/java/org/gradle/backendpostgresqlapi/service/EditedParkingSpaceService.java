@@ -34,6 +34,9 @@ public class EditedParkingSpaceService {
     }
 
     public void copyDataIntoDatabase() throws IOException {
+        log.info("Copying data to '{}' table...", EDITED_PARKING_SPACES);
+        long duplicates = 0;
+
         for (long i = 1; i <= parkingSpaceRepo.count(); i++) {
             Optional<ParkingSpace> parkingSpace = parkingSpaceRepo.findById(i);
             if (parkingSpace.isPresent()) {
@@ -46,12 +49,17 @@ public class EditedParkingSpaceService {
                     EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(existingParkingSpace);
                     editedParkingSpaceRepo.save(editedParkingSpace);
                 } else {
-                    log.warn("Parking space from first table not copied! A parking space with the same id already exists in the '{}' table.", EDITED_PARKING_SPACES);
+                    duplicates++;
                 }
             } else {
                 throw new IOException(String.format("Error on copying data into '%s'.", EDITED_PARKING_SPACES));
             }
         }
+
+        if (duplicates > 0) {
+            log.warn("{} duplicates were not copied, because data already exists in the '{}' table.", duplicates, EDITED_PARKING_SPACES);
+        }
+        log.info("Successfully copied data to '{}'", EDITED_PARKING_SPACES);
     }
 
     public void calculateAndUpdateAreaColumnById(long id) {

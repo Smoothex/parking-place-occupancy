@@ -1,28 +1,23 @@
 package org.gradle.backendpostgresqlapi.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
-
-import org.gradle.backendpostgresqlapi.configuration.GeoDataFile;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
-import com.opencsv.exceptions.CsvValidationException;
 import java.io.IOException;
 import java.util.List;
 
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
-import static org.gradle.backendpostgresqlapi.util.CsvHandler.*;
-import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_POINTS;
+import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
-
-import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.io.WKTWriter;
-import org.springframework.util.CollectionUtils;
-import org.apache.commons.io.FilenameUtils;
 
 @Slf4j
 @Service
@@ -30,16 +25,11 @@ public class ParkingSpaceService {
 
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
-    private final ParkingPointService parkingPointService;
-    private final GeoDataFile geoDataFile;
 
     @Autowired
-    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo,
-        ParkingPointService parkingPointService, GeoDataFile geoDataFile) {
+    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo) {
         this.resourceLoader = resourceLoader;
         this.parkingSpaceRepo = parkingSpaceRepo;
-        this.parkingPointService = parkingPointService;
-        this.geoDataFile = geoDataFile;
     }
 
     /**
@@ -49,24 +39,6 @@ public class ParkingSpaceService {
         log.debug("Initializing index for table '{}' ...", PARKING_SPACES);
         parkingSpaceRepo.createMainDataIndex();
         log.info("Index for table '{}' created.", PARKING_SPACES);
-    }
-
-    public void loadDataIntoDatabase() throws IOException, CsvValidationException {
-        List<String> filePaths = geoDataFile.getPaths();
-
-        if (!CollectionUtils.isEmpty(filePaths)) {
-            for (String filePath : filePaths) {
-                String extension = FilenameUtils.getExtension(filePath).toLowerCase();
-
-                switch (extension) {
-                    case "geojson" -> loadGeoJson(filePath);
-                    case "csv" -> loadCsv(filePath);
-                    default -> log.warn("Unsupported file format for file: {}", filePath);
-                }
-            }
-        } else {
-            log.warn("No data files configured for loading.");
-        }
     }
 
     public List<ParkingSpace> getAllParkingSpaces() {
@@ -80,17 +52,15 @@ public class ParkingSpaceService {
      * @param filePath the GeoJSON file from the filesystem to read from
      * @throws IOException an error when there is a problem reading the GeoJSON file
      */
-    private void loadGeoJson(String filePath) throws IOException {
+    public void loadGeoJson(String filePath) throws IOException {
         String geoJsonData = getJsonDataFromFile(resourceLoader, filePath);
 
         if (geoJsonData.contains("Polygon")) {
-            log.debug("Loading GeoJSON data into '{}' table...", PARKING_SPACES);
+            log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
             loadPolygons(geoJsonData);
-            log.info("Successfully loaded all data in '{}'.", PARKING_SPACES);
+            log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
         } else {
-            log.debug("Loading GeoJSON data into '{}' table...", PARKING_POINTS);
-            parkingPointService.loadParkingPoints(geoJsonData);
-            log.info("Successfully loaded all data in '{}'.", PARKING_POINTS);
+            log.warn("File '{}' does not contain parking spaces data.",filePath);
         }
     }
 
@@ -102,8 +72,8 @@ public class ParkingSpaceService {
      * @throws IOException an error when there is a problem reading the CSV file
      * @throws CsvValidationException an error when there is a problem validating the CSV file
      */
-    private void loadCsv(String filePath) throws IOException, CsvValidationException {
-        log.debug("Loading CSV data into '{}' table...", PARKING_SPACES);
+    public void loadCsv(String filePath) throws IOException, CsvValidationException {
+        log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
             if (isPolygonUnique(parkingSpace.getPolygon())) {
@@ -113,7 +83,7 @@ public class ParkingSpaceService {
                     PARKING_SPACES);
             }
         }
-        log.info("CSV data loading into '{}' table is completed.", PARKING_SPACES);
+        log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
     }
 
     private void loadPolygons(String geoJsonData) throws JsonProcessingException {
@@ -128,11 +98,10 @@ public class ParkingSpaceService {
         if (duplicatePolygons > 0)
             log.warn("{} parkings space from GeoJSON file were not loaded and skipped due to a duplication in the '{}' table.",
                 duplicatePolygons, PARKING_SPACES);
-        log.info("GeoJSON data loading into '{}' table is completed.", PARKING_SPACES);
     }
 
     public void calculateAndUpdateAreaColumn() {
-        log.debug("Calculating and updating area column in '{}' table...", PARKING_SPACES);
+        log.info("Calculating and updating area column in '{}' table...", PARKING_SPACES);
         parkingSpaceRepo.updateAreaColumn();
         log.info("Area column values were calculated and set accordingly for '{}'.", PARKING_SPACES);
     }
