@@ -150,7 +150,7 @@ export class MapComponent {
             (areaData) => {
               return areaData;
             },
-            (error) => {}
+            (error) => {console.error("error getParkingSpaceAreawihID"+error)}
           )
           .then((area) => {
             let coordinatesArray = parseElement.polygon.coordinates;
@@ -233,6 +233,8 @@ export class MapComponent {
         // this.router.navigate(['/play'])
       }, 500);
 
+    }, (error) => {
+      console.error("get all parking space data", error )
     });
   }
   /**
