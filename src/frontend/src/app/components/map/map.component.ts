@@ -106,7 +106,11 @@ export class MapComponent {
     }
   }
 
-  constructor(private restApi: RestAPIService, private storage:PlayStorageService, private router: Router) {}
+  constructor(
+    private restApi: RestAPIService,
+    private storage: PlayStorageService,
+    private router: Router
+  ) {}
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -141,101 +145,109 @@ export class MapComponent {
   // Event listeners for mouseover and mouseout
 
   markParkingPlaces(): void {
-    this.restApi.getAllParkingSpaces().then((data: any) => {
-      data.forEach((element: any) => {
-        const parseElement = JSON.parse(element);
-        this.restApi
-          .getParkingSpaceAreaWithId(parseElement.id)
-          .then(
-            (areaData) => {
-              return areaData;
-            },
-            (error) => {console.error("error getParkingSpaceAreawihID"+error)}
-          )
-          .then((area) => {
-            let coordinatesArray = parseElement.polygon.coordinates;
-            const arrayOfArrays = coordinatesArray.map((obj: any) => [
-              obj.y,
-              obj.x,
-            ]);
-            parseElement.polygon.coordinates = arrayOfArrays;
-            const simple = this.simplifyGeoPolygon(arrayOfArrays);
-            let polygon = L.polygon(simple)
-              .addTo(this.map)
-              .bindPopup(
-                'Id: ' +
-                  parseElement.id +
-                  '<br>' +
-                  'Occupied: ' +
-                  JSON.stringify(parseElement.occupied) +
-                  ' <br>' +
-                  'Area: ' +
-                  area +
-                  ' m&sup2;' +
-                  '<br>' +
-                  ' <button (click)="`${enable}`">Edit</button>'
-              );
-            let polygonColor: string = 'green';
-            if (parseElement.occupied) {
-              polygonColor = 'red';
-            }
-            polygon.setStyle({
-              fillColor: polygonColor,
-              color: polygonColor,
-              opacity: 1,
-              weight: 3,
-            });
-            polygon.on({
-              mouseover: (event: any) => {
-                this.highlightFeature(event);
+    this.restApi.getAllParkingSpaces().then(
+      (data: any) => {
+        data.forEach((element: any) => {
+          // const parseElement = JSON.parse(element);
+          const parseElement = element;
+          console.log(element);
+          this.restApi
+            .getParkingSpaceAreaWithId(parseElement.id)
+            .then(
+              (areaData) => {
+                return areaData;
               },
-              mouseout: (event: any) => {
-                this.resetFeature(event);
-              },
-            });
-            polygon.on('click', (event) => {
-              if (this.activePolygonInteractionLayer != undefined) {
-                this.mapClickInteraction(event);
-              } else {
-                this.activePolygonInteractionLayer = event;
+              (error) => {
+                console.error('error getParkingSpaceAreawihID' + error);
               }
-              console.log(event + 'parse' + parseElement.id);
-              polygon.bringToFront();
-
-              console.log(event);
-              event.target.editing.enable();
-              // TODO: add timestamp component here 
-              // this.restApi.getTimestampData(p)
-              if (this.debug) {
-                console.log('orignal', arrayOfArrays);
-                this.addPolygon(arrayOfArrays);
-                console.log('new', simple);
-                console.log('added marker on the layer', this.markerLayer);
+            )
+            .then((area) => {
+              let coordinatesArray = parseElement.coordinates;
+              const arrayOfArrays = coordinatesArray.map((obj: any) => [
+                obj.y,
+                obj.x,
+              ]);
+              console.log(arrayOfArrays);
+              parseElement.coordinates = arrayOfArrays;
+              const simple = this.simplifyGeoPolygon(arrayOfArrays);
+              let polygon = L.polygon(simple)
+                .addTo(this.map)
+                .bindPopup(
+                  'Id: ' +
+                    parseElement.id +
+                    '<br>' +
+                    'Occupied: ' +
+                    JSON.stringify(parseElement.occupied) +
+                    ' <br>' +
+                    'Area: ' +
+                    area +
+                    ' m&sup2;' +
+                    '<br>' +
+                    'Capacity: ' +
+                    parseElement.capacity +
+                    '<br>' +
+                    ' <button (click)="`${enable}`">Edit</button>'
+                );
+              let polygonColor: string = 'green';
+              if (parseElement.occupied) {
+                polygonColor = 'red';
               }
+              polygon.setStyle({
+                fillColor: polygonColor,
+                color: polygonColor,
+                opacity: 1,
+                weight: 3,
+              });
+              polygon.on({
+                mouseover: (event: any) => {
+                  this.highlightFeature(event);
+                },
+                mouseout: (event: any) => {
+                  this.resetFeature(event);
+                },
+              });
+              polygon.on('click', (event) => {
+                if (this.activePolygonInteractionLayer != undefined) {
+                  this.mapClickInteraction(event);
+                } else {
+                  this.activePolygonInteractionLayer = event;
+                }
+                console.log(event + 'parse' + parseElement.id);
+                polygon.bringToFront();
+
+                console.log(event);
+                event.target.editing.enable();
+                // TODO: add timestamp component here
+                // this.restApi.getTimestampData(p)
+                if (this.debug) {
+                  console.log('orignal', arrayOfArrays);
+                  this.addPolygon(arrayOfArrays);
+                  console.log('new', simple);
+                  console.log('added marker on the layer', this.markerLayer);
+                }
+              });
+              // adding historical data for the polygons
+              // properties which could be edited would be stored here
+              let obj = {
+                ...parseElement,
+                polygon_layer: polygon,
+                new_polygon_event_layer: polygon,
+                simplified_initial_coordinates: simple,
+                simplified_edited_coordinates: simple, // will be updated with every update in polygon in one user session
+              };
+              this.parkingSpaceData.push(obj);
             });
-            // adding historical data for the polygons
-            // properties which could be edited would be stored here
-            let obj = {
-              ...parseElement,
-              polygon_layer: polygon,
-              new_polygon_event_layer: polygon,
-              simplified_initial_coordinates: simple,
-              simplified_edited_coordinates: simple, // will be updated with every update in polygon in one user session
-            };
-            this.parkingSpaceData.push(obj);
-
-          });
-      });
-      console.log('parking space data ', this.parkingSpaceData);
-      this.storage.storeData(this.parkingSpaceData)
-      setTimeout(() => {
-        
-        // this.router.navigate(['/play'])
-      }, 500);
-
-    }, (error) => {
-      console.error("get all parking space data", error )
-    });
+        });
+        console.log('parking space data ', this.parkingSpaceData);
+        this.storage.storeData(this.parkingSpaceData);
+        setTimeout(() => {
+          // this.router.navigate(['/play'])
+        }, 500);
+      },
+      (error) => {
+        console.error('get all parking space data', error);
+      }
+    );
   }
   /**
    * Event handler activated while changing the polygon shape
@@ -305,16 +317,16 @@ export class MapComponent {
       return [item.lng, item.lat];
     });
 
-    //TODO: REST POST call to save it in the database. ~ done
     this.restApi
       .updateParkingSpaceWithId(
         this.parkingSpaceData[index].parkingSpaceId,
         newGeometry
       )
       .then((result) => {
-       this.parkingSpaceData[index].simplified_edited_coordinates =newGeometry.map((item: any) => {
-          return [item[1],item[0]]
-        })
+        this.parkingSpaceData[index].simplified_edited_coordinates =
+          newGeometry.map((item: any) => {
+            return [item[1], item[0]];
+          });
       });
   }
   // future feature request
