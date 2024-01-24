@@ -125,4 +125,10 @@ public class EditedParkingSpaceController {
         List<TimestampDto> timestampDtos = timestampService.getAllTimestampsByParkingPointIdAsDto(parking_point_id);
         return ResponseEntity.ok(timestampDtos);
     }
+
+    @GetMapping("/{id}/neighbors")
+    public ResponseEntity<List<Long>> getNeighborIds(@PathVariable Long id) {
+        List<Long> neighborIds = editedParkingSpaceService.getNeighbors(id);
+        return ResponseEntity.ok(neighborIds);
+    }
 }

@@ -11,6 +11,7 @@ import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.io.IOException;
 import java.util.List;
@@ -132,5 +133,13 @@ public class EditedParkingSpaceService {
         editedParkingSpace.setArea(parkingSpace.getArea());
         editedParkingSpace.setPosition(parkingSpace.getPosition());
         return editedParkingSpace;
+    }
+
+    public List<Long> getNeighbors(Long id) {
+        editedParkingSpaceRepo.findById(id)
+                              .orElseThrow(() -> new ResourceAccessException("Parking space with id: " + id + " not found."));
+
+        List<Long> neighborIds = editedParkingSpaceRepo.findNeighborIds(id);
+        return neighborIds;
     }
 }
