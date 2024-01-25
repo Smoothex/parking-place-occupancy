@@ -30,7 +30,7 @@ public class DtoConverterUtil {
 	public static ParkingPointDto convertToDto(ParkingPoint parkingPoint) {
 		ParkingPointDto parkingPointDto = new ParkingPointDto();
 		parkingPointDto.setId(parkingPoint.getId());
-		parkingPointDto.setEditedParkingSpaceId(parkingPoint.getEditedParkingSpaceId());
+		parkingPointDto.setEditedParkingSpaceId(parkingPoint.getEditedParkingSpace().getId());
 		parkingPointDto.setCoordinates(parkingPoint.getPoint().getCoordinates());
 
 		return parkingPointDto;
@@ -39,7 +39,7 @@ public class DtoConverterUtil {
 	public static TimestampDto convertToDto(Timestamp timestamp) {
 		TimestampDto timestampDto = new TimestampDto();
 		timestampDto.setId(timestamp.getId());
-		timestampDto.setParkingPointId(timestamp.getParkingPointId());
+		timestampDto.setParkingPointId(timestamp.getParkingPoint().getId());
 		timestampDto.setTimestamp(timestamp.getTimestamp());
 
 		return timestampDto;

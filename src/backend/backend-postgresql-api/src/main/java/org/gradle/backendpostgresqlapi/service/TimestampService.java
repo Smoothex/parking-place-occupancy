@@ -2,6 +2,7 @@ package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.dto.TimestampDto;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.TimestampRepo;
 import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
@@ -33,7 +34,8 @@ public class TimestampService {
     }
 
     public void saveTimestamp(Timestamp timestamp) {
-        if (timestampRepo.getMaxOneDuplicate(timestamp.getParkingPointId(), timestamp.getTimestamp()) == 0) {
+        ParkingPoint parkingPoint = timestamp.getParkingPoint();
+        if (parkingPoint != null && timestampRepo.getMaxOneDuplicate(parkingPoint.getId(), timestamp.getTimestamp()) == 0) {
             timestampRepo.save(timestamp);
         }
     }

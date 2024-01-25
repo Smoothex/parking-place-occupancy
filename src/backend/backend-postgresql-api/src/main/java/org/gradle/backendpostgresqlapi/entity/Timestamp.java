@@ -15,8 +15,9 @@ public class Timestamp {
     @Column(name = "t_id", nullable = false)
     private Long id;
 
-    @Column(name = "t_pp_id", nullable = false, updatable = false)
-    private Long parkingPointId;
+    @ManyToOne
+    @JoinColumn(name = "parking_point_id", nullable = true)
+    private ParkingPoint parkingPoint;
 
     @Column(name = "t_timestamp", nullable = false, updatable = false)
     private String timestamp;
@@ -28,7 +29,7 @@ public class Timestamp {
     public String toString() {
         return "TimestampPoint{" +
                     "id=" + id +
-                    ", parkingPointId=" + parkingPointId +
+                    ", parkingPointId=" + parkingPoint.getId() +
                     ", timestamp=" + timestamp + "}";
     }
 }

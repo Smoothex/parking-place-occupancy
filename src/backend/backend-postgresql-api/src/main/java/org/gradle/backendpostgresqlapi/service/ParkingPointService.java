@@ -2,6 +2,7 @@ package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
+import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
@@ -84,18 +85,23 @@ public class ParkingPointService {
 
                 // Convert the new polygon to WKT (Well-Known Text)
                 String pointWKT = new WKTWriter().write(parkingPoint.getPoint());
+                log.warn("Point '{}' is not within any polygon.", pointWKT);
                 Optional<Long> editedParkingSpaceId = editedParkingSpaceRepo.getIdByPointWithin(pointWKT);
+                log.warn("Point '{}' is within the polygon with id '{}'.", pointWKT, editedParkingSpaceId);
                 if (editedParkingSpaceId.isPresent()) {
-                    parkingPoint.setEditedParkingSpaceId(editedParkingSpaceId.get());
+                    EditedParkingSpace editedParkingSpace = editedParkingSpaceRepo.findById(editedParkingSpaceId.get()).orElse(null);
+                    log.warn("Edited parking space with id '{}' found.", editedParkingSpaceId.get());
+                    parkingPoint.setEditedParkingSpace(editedParkingSpace);
                 } else {
-                    parkingPoint.setEditedParkingSpaceId(-1L);
+                    log.warn("No edited parking space found for point '{}'.", pointWKT);
+                    parkingPoint.setEditedParkingSpace(null);
                 }
 
                 ParkingPoint savedParkingPoint = parkingPointRepo.save(parkingPoint);
-                timestamp.setParkingPointId(savedParkingPoint.getId());
+                timestamp.setParkingPoint(savedParkingPoint);
             } else {
                 duplicatePoints++;
-                timestamp.setParkingPointId(duplicateId);
+                timestamp.setParkingPoint(null);
             }
 
             timestampService.saveTimestamp(timestamp);

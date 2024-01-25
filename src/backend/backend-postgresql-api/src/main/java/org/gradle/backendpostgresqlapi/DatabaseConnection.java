@@ -57,7 +57,7 @@ public class DatabaseConnection {
                 parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
             }
 
-            System.out.println("Program is running!");
+            log.info("Program is running!");
         };
     }
 }
