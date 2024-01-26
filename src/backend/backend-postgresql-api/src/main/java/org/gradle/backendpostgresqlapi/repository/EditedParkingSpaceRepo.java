@@ -19,11 +19,19 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
         String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.EDITED_PARKING_SPACES
                         + " SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) WHERE edit_id = :id";
         String GET_ID_BY_POINT = "SELECT edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES
-                        + " WHERE ST_Contains(cast(edit_coordinates as geometry), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
+                        + " WHERE ST_Contains(cast(edit_coordinates as GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
         String GET_NEIGHBORS = "SELECT p2.edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES + " p1 " +
                                 "JOIN " + TableNameUtil.EDITED_PARKING_SPACES + " p2 " +
                                 "ON p1.edit_id = :id AND p1.edit_id <> p2.edit_id " +
-                                "AND ST_Touches(CAST(p1.edit_coordinates AS geometry), CAST(p2.edit_coordinates AS geometry))";
+                                "AND ST_Touches(CAST(p1.edit_coordinates AS GEOMETRY), CAST(p2.edit_coordinates AS GEOMETRY))";
+        String CHECK_FOR_OVERLAPS = 
+                                "SELECT  edit_id, " +
+                                        "ROUND(CAST(ST_Area(ST_Intersection(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = 1255))) AS NUMERIC), 2) AS overlap_area, " + //
+                                        "ST_AsText(edit_coordinates) " + 
+                                "FROM  " + TableNameUtil.EDITED_PARKING_SPACES + 
+                                " WHERE ST_Intersects(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = :id))" + 
+                                "AND edit_id <> :id " + 
+                                "AND ST_Area(ST_Intersection(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = :id))) > 0;";
         
         // GET POINTS ON THE EDGE OF THE POLYGON
         // SELECT edit_id, edit_area, edit_capacity, edit_occupied, edit_ps_id,
@@ -45,4 +53,8 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
 
         @Query(value = GET_NEIGHBORS, nativeQuery = true)
         List<Long> findNeighborIds(@Param("id") Long id);
+
+        @Query(value = CHECK_FOR_OVERLAPS, nativeQuery = true)
+        List<Object[]> findOverlappingSpaces(@Param("id") Long id);
+
 }

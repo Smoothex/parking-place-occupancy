@@ -142,4 +142,8 @@ public class EditedParkingSpaceService {
         List<Long> neighborIds = editedParkingSpaceRepo.findNeighborIds(id);
         return neighborIds;
     }
+
+    public List<Object[]> getOverlappingSpaces(Long id) {
+        return editedParkingSpaceRepo.findOverlappingSpaces(id);
+    }
 }

@@ -131,4 +131,11 @@ public class EditedParkingSpaceController {
         List<Long> neighborIds = editedParkingSpaceService.getNeighbors(id);
         return ResponseEntity.ok(neighborIds);
     }
+
+    @GetMapping("/{id}/overlaps")
+    public ResponseEntity<List<Object[]>> findOverlappingSpaces(@PathVariable Long id) {
+        List<Object[]> result = editedParkingSpaceService.getOverlappingSpaces(id);
+
+        return ResponseEntity.ok(result);
+    }
 }
