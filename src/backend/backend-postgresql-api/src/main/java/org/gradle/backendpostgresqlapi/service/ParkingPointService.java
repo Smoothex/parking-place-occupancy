@@ -82,7 +82,7 @@ public class ParkingPointService {
             long duplicateId = isPointUnique(parkingPoint);
 
             if (duplicateId == -1L) {
-                
+
                 // Convert the new polygon to WKT (Well-Known Text)
                 String pointWKT = new WKTWriter().write(parkingPoint.getPoint());
                 Optional<Long> editedParkingSpaceId = editedParkingSpaceRepo.getIdByPointWithin(pointWKT);

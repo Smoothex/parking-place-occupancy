@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -130,6 +129,7 @@ public class EditedParkingSpaceController {
         return ResponseEntity.ok(timestampDtos);
     }
 
+    // http://localhost:8080/api/parking-spaces/1/neighbors
     @GetMapping("/{id}/neighbors")
     public ResponseEntity<List<Long>> getNeighborIds(@PathVariable Long id) {
         List<Long> neighborIds = editedParkingSpaceService.getNeighbors(id);

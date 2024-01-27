@@ -7,7 +7,6 @@ import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.Locale;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,26 +17,25 @@ import java.util.stream.Stream;
 public class OverlappingParkingSpace {
         @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ps_id", nullable = false)
+    @Column(name = "ops_id", nullable = false)
     private Long id;
 
-    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ps_coordinates", nullable = false, updatable = false)
+    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ops_coordinates", nullable = false, updatable = false)
     private Polygon polygon;
 
-    @Column(name = "ps_area")
+    @Column(name = "ops_area")
     private double area;
 
-    @Column(name = "ps_capacity")
+    @Column(name = "ops_capacity")
     private Integer capacity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ps_position")
+    @Column(name = "ops_position")
     private ParkingPosition position;
 
     @ManyToOne
-    @JoinColumn(name = "assigned_parking_space_id")
-    private ParkingSpace assigned_parking_space;
-
+    @JoinColumn(name = "assigned_parking_space_id", nullable = false)
+    private ParkingSpace assignedParkingSpace;
 
     @Override
     public String toString() {

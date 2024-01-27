@@ -27,7 +27,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
         + " WHERE ST_Equals(cast(ps_coordinates as geometry), ST_GeomFromText(:polygonToCompareWith, 4326)) LIMIT 1";
     String CHECK_FOR_OVERLAPS = 
         "SELECT  edit_id, " +
-                "ROUND(CAST(ST_Area(ST_Intersection(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = 1255))) AS NUMERIC), 2) AS overlap_area, " + //
+                "ROUND(CAST(ST_Area(ST_Intersection(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = :id))) AS NUMERIC), 2) AS overlap_area, " + //
                 "ST_AsText(edit_coordinates) " + 
         "FROM  " + TableNameUtil.EDITED_PARKING_SPACES + 
         " WHERE ST_Intersects(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = :id))" + 

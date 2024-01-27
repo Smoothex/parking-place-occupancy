@@ -34,9 +34,8 @@ public class ParkingSpace {
     @Column(name = "ps_position")
     private ParkingPosition position;
 
-    @OneToMany
-    @JoinColumn(name = "overlapping_parking_space_id")
-    private Set<OverlappingParkingSpace> overlapping_parking_spaces;
+    @OneToMany(mappedBy = "assignedParkingSpace")
+    private Set<OverlappingParkingSpace> overlappingParkingSpaces;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
     public ParkingSpace() {}
