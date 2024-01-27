@@ -1,4 +1,5 @@
 package org.gradle.backendpostgresqlapi.entity;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,16 +8,15 @@ import org.locationtech.jts.geom.Polygon;
 
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "parking_spaces", schema = "public")
-public class ParkingSpace {
-
-    @Id
+@Table(name = "overlapping_parking_spaces", schema = "public")
+public class OverlappingParkingSpace {
+        @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ps_id", nullable = false)
     private Long id;
@@ -34,12 +34,10 @@ public class ParkingSpace {
     @Column(name = "ps_position")
     private ParkingPosition position;
 
-    @OneToMany
-    @JoinColumn(name = "overlapping_parking_space_id")
-    private Set<OverlappingParkingSpace> overlapping_parking_spaces;
+    @ManyToOne
+    @JoinColumn(name = "assigned_parking_space_id")
+    private ParkingSpace assigned_parking_space;
 
-    // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
-    public ParkingSpace() {}
 
     @Override
     public String toString() {

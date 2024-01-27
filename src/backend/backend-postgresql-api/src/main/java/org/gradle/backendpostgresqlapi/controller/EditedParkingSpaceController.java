@@ -6,12 +6,14 @@ import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
 import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
+import org.gradle.backendpostgresqlapi.service.ParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
 import org.gradle.backendpostgresqlapi.service.TimestampService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,13 +25,15 @@ import static org.gradle.backendpostgresqlapi.util.DtoConverterUtil.convertToDto
 public class EditedParkingSpaceController {
 
     private final EditedParkingSpaceService editedParkingSpaceService;
+    private final ParkingSpaceService parkingSpaceService;
     private final ParkingPointService parkingPointService;
     private final TimestampService timestampService;
 
     @Autowired
-    public EditedParkingSpaceController(EditedParkingSpaceService editedParkingSpaceService,
+    public EditedParkingSpaceController(EditedParkingSpaceService editedParkingSpaceService, ParkingSpaceService parkingSpaceService,
         ParkingPointService parkingPointService, TimestampService timestampService) {
         this.editedParkingSpaceService = editedParkingSpaceService;
+        this.parkingSpaceService = parkingSpaceService;
         this.parkingPointService = parkingPointService;
         this.timestampService = timestampService;
     }
@@ -130,12 +134,5 @@ public class EditedParkingSpaceController {
     public ResponseEntity<List<Long>> getNeighborIds(@PathVariable Long id) {
         List<Long> neighborIds = editedParkingSpaceService.getNeighbors(id);
         return ResponseEntity.ok(neighborIds);
-    }
-
-    @GetMapping("/{id}/overlaps")
-    public ResponseEntity<List<Object[]>> findOverlappingSpaces(@PathVariable Long id) {
-        List<Object[]> result = editedParkingSpaceService.getOverlappingSpaces(id);
-
-        return ResponseEntity.ok(result);
     }
 }

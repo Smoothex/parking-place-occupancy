@@ -82,12 +82,10 @@ public class ParkingPointService {
             long duplicateId = isPointUnique(parkingPoint);
 
             if (duplicateId == -1L) {
-
+                
                 // Convert the new polygon to WKT (Well-Known Text)
                 String pointWKT = new WKTWriter().write(parkingPoint.getPoint());
-                log.warn("Point '{}' is not within any polygon.", pointWKT);
                 Optional<Long> editedParkingSpaceId = editedParkingSpaceRepo.getIdByPointWithin(pointWKT);
-                log.warn("Point '{}' is within the polygon with id '{}'.", pointWKT, editedParkingSpaceId);
                 if (editedParkingSpaceId.isPresent()) {
                     EditedParkingSpace editedParkingSpace = editedParkingSpaceRepo.findById(editedParkingSpaceId.get()).orElse(null);
                     log.warn("Edited parking space with id '{}' found.", editedParkingSpaceId.get());

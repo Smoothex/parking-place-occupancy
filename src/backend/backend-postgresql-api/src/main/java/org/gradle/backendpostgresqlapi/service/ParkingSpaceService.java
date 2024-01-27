@@ -3,16 +3,33 @@ package org.gradle.backendpostgresqlapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
+
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
+import org.gradle.backendpostgresqlapi.dto.TimestampDto;
+import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
+import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
@@ -22,14 +39,19 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 @Slf4j
 @Service
 public class ParkingSpaceService {
+    private final static WKTReader wktReader = new WKTReader();
 
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
+    private final OverlappingParkingSpaceRepo overlappingParkingSpaceRepo;
+    private final TimestampService timestampService;
 
     @Autowired
-    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo) {
+    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo, TimestampService timestampService, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo) {
         this.resourceLoader = resourceLoader;
         this.parkingSpaceRepo = parkingSpaceRepo;
+        this.timestampService = timestampService;
+        this.overlappingParkingSpaceRepo = overlappingParkingSpaceRepo;
     }
 
     /**
@@ -89,10 +111,47 @@ public class ParkingSpaceService {
     private void loadPolygons(String geoJsonData) throws JsonProcessingException {
         int duplicatePolygons = 0;
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            if (isPolygonUnique(polygon))
-                parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
-            else
+            if (isPolygonUnique(polygon)) {
+
+                // get centroid
+                Point newPolygonCentroid = findCentroid(polygon);
+
+                // get 3 closest other centroids and loop over them
+                List<String> closestCentroids = parkingSpaceRepo.findClosestCentroids(newPolygonCentroid.toString());
+                for (String neighboring_centroid : closestCentroids) {
+                    // get polygon from centroid
+                    Optional<String> polygonByCentroid = parkingSpaceRepo.findPolygonByCentroid(neighboring_centroid);
+                    Polygon neighboringPolygon;
+                        
+                    try {
+                        log.debug("Polygon by centroid: {}", polygonByCentroid.get());
+                        neighboringPolygon = (Polygon) wktReader.read(polygonByCentroid.get());
+
+                        if (neighboringPolygon.intersection(polygon).getArea() > 0) {
+                            log.info("Polygon intersects with neighboring polygon.");
+                            double originalArea = polygon.getArea();
+                            Double overlapArea = neighboringPolygon.getArea();
+                            double percentageOverlap = (overlapArea / originalArea) * 100;
+                            log.info("Overlap area: {}", overlapArea);
+                            log.info("Percentage overlap: {}", percentageOverlap);
+
+                            if (percentageOverlap > 70) {
+                                overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
+                            } else {
+                                parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
+                            }
+                        } else {
+                            log.info("Polygon does not intersect with neighboring polygon.");
+                            parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
+                            continue;
+                        }
+                    } catch (org.locationtech.jts.io.ParseException e) {
+                        e.printStackTrace();
+                    }  
+                }
+            } else {
                 duplicatePolygons++;
+            }
         }
 
         if (duplicatePolygons > 0)
@@ -114,5 +173,34 @@ public class ParkingSpaceService {
         long count = parkingSpaceRepo.countSamePolygons(newPolygonWKT);
 
         return count == 0; // If count is 0, the polygon is unique
+    }
+    
+    private TimestampDto getMostRecentTimestamp(List<TimestampDto> firstTimestamps, List<TimestampDto> originalTimestamps) throws ParseException {
+        if (firstTimestamps.isEmpty() && originalTimestamps.isEmpty()) {
+            return null;
+        }
+    
+        if (firstTimestamps.isEmpty()) {
+            return Collections.max(originalTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
+        }
+    
+        if (originalTimestamps.isEmpty()) {
+            return Collections.max(firstTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
+        }
+    
+        TimestampDto mostRecentFirstTimestamp = Collections.max(firstTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
+        TimestampDto mostRecentOriginalTimestamp = Collections.max(originalTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
+    
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+        
+        Date firstTimestamp = dateFormat.parse(mostRecentFirstTimestamp.getTimestamp());
+        Date originalTimestamp = dateFormat.parse(mostRecentOriginalTimestamp.getTimestamp());
+        
+        return firstTimestamp.after(originalTimestamp) ? mostRecentFirstTimestamp : mostRecentOriginalTimestamp;
+    }
+
+    public Point findCentroid(Polygon polygon) {
+        Geometry geometry = (Geometry) polygon;
+        return geometry.getCentroid();
     }
 }
