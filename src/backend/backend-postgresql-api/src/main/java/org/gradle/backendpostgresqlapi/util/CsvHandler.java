@@ -70,7 +70,7 @@ public class CsvHandler {
         return parkingSpaces;
     }
 
-    private static Geometry parseWktToGeometry(String wktString) throws IOException {
+    public static Geometry parseWktToGeometry(String wktString) throws IOException {
         try {
             return wktReader.read(wktString);
         } catch (ParseException e) {

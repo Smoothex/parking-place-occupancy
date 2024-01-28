@@ -99,9 +99,7 @@ public class ParkingPointService {
                 timestamp.setParkingPoint(savedParkingPoint);
             } else {
                 duplicatePoints++;
-                timestamp.setParkingPoint(null);
             }
-
             timestampService.saveTimestamp(timestamp);
         }
 
