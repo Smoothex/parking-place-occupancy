@@ -19,12 +19,17 @@ import org.locationtech.jts.geom.Polygon;
 @Transactional
 public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
-    String CREATE_MAIN_DATA_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_coordinates_idx ON " + TableNameUtil.PARKING_SPACES
-        + " USING GIST (ps_coordinates)";
+    String CREATE_MAIN_DATA_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_centroid_idx ON " + TableNameUtil.PARKING_SPACES
+        + " USING GIST (ps_centroid)";
     String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.PARKING_SPACES +
         " SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_area = 0.0";
-    String COUNT_NUM_OF_POLYGONS = "SELECT COUNT(*) FROM " + TableNameUtil.PARKING_SPACES
-        + " WHERE ST_Equals(cast(ps_coordinates as geometry), ST_GeomFromText(:polygonToCompareWith, 4326)) LIMIT 1";
+    String FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID = "SELECT COUNT(*) FROM " + TableNameUtil.PARKING_SPACES
+        + " WHERE ST_Equals(CAST(ps_centroid AS GEOMETRY), ST_GeomFromText(:centroidToCompareWith, 4326)) LIMIT 1";
+
+    String FIND_CLOSEST_PARKING_SPACES_BY_CENTROID = "SELECT * FROM " + TableNameUtil.PARKING_SPACES +
+        " WHERE ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) <= 10 " +
+        "ORDER BY ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) ASC LIMIT 3";
+
     String CHECK_FOR_OVERLAPS = 
         "SELECT  edit_id, " +
                 "ROUND(CAST(ST_Area(ST_Intersection(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = :id))) AS NUMERIC), 2) AS overlap_area, " + //
@@ -57,11 +62,6 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     String GET_CENTROID_BY_POLYGON = "SELECT ST_AsText(ST_Centroid(ST_GeomFromText(ps_coordinates, 4326))) FROM " + TableNameUtil.PARKING_SPACES + " WHERE ST_AsText(ps_coordinates) = :polygon";
 
-    String FIND_CLOSEST_CENTROIDS = "SELECT ST_AsText(ST_Centroid(CAST(ps_coordinates AS GEOMETRY))) AS centroid " +
-                                    "FROM " + TableNameUtil.PARKING_SPACES +
-                                    " WHERE ST_Distance(ST_GeomFromText(:point, 4326), ST_Centroid(CAST(ps_coordinates AS GEOMETRY))) <= 10 " +
-                                    "ORDER BY ST_Distance(ST_GeomFromText(:point, 4326), ST_Centroid(CAST(ps_coordinates AS GEOMETRY))) ASC";
-
     @Modifying
     @Query(value = CREATE_MAIN_DATA_INDEX_SQL, nativeQuery = true)
     void createMainDataIndex();
@@ -74,11 +74,18 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     default void insertParkingSpaceFromPolygon(Polygon polygon) {
         ParkingSpace parkingSpace = new ParkingSpace();
         parkingSpace.setPolygon(polygon);
+        parkingSpace.setCentroid(polygon.getCentroid());
         this.save(parkingSpace);
     }
 
-    @Query(value = COUNT_NUM_OF_POLYGONS, nativeQuery = true)
-    long countSamePolygons(@Param("polygonToCompareWith") String polygonToCompareWith);
+    @Modifying
+    default void insertParkingSpaceWithCentroid(ParkingSpace parkingSpace) {
+        parkingSpace.setCentroid(parkingSpace.getPolygon().getCentroid());
+        this.save(parkingSpace);
+    }
+
+    @Query(value = FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID, nativeQuery = true)
+    long findOneDuplicatePolygonByCentroid(@Param("centroidToCompareWith") String centroidToCompareWith);
 
     @Query(value = CHECK_FOR_OVERLAPS, nativeQuery = true)
     List<Object[]> findOverlappingSpacesById(@Param("id") Long id);
@@ -92,8 +99,8 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     @Query(value = GET_CENTROID_BY_POLYGON, nativeQuery = true)
     Point getCentroidByPolygon(@Param("polygon") String polygon);
 
-    @Query(value = FIND_CLOSEST_CENTROIDS, nativeQuery = true)
-    List<String> findClosestCentroids(@Param("point") String point);
+    @Query(value = FIND_CLOSEST_PARKING_SPACES_BY_CENTROID, nativeQuery = true)
+    List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point);
 
     @Query(value = GET_POLYGON_BY_CENTROID, nativeQuery = true)
     String findPolygonByCentroid(@Param("centroid") String centroid);

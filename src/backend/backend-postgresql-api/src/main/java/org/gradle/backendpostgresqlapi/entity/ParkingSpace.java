@@ -3,6 +3,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.Locale;
@@ -33,6 +34,9 @@ public class ParkingSpace {
     @Enumerated(EnumType.STRING)
     @Column(name = "ps_position")
     private ParkingPosition position;
+
+    @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "ps_centroid", nullable = false, updatable = false)
+    private Point centroid;
 
     @OneToMany(mappedBy = "assignedParkingSpace")
     private Set<OverlappingParkingSpace> overlappingParkingSpaces;

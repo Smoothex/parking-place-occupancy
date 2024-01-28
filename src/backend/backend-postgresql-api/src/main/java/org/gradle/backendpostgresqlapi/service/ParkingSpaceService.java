@@ -3,35 +3,25 @@ package org.gradle.backendpostgresqlapi.service;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
 
-import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
 import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.io.WKTReader;
-import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
-import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.Polygon;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
-import static org.gradle.backendpostgresqlapi.util.CsvHandler.parseWktToGeometry;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
@@ -39,7 +29,6 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 @Slf4j
 @Service
 public class ParkingSpaceService {
-    private final static WKTReader wktReader = new WKTReader();
 
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
@@ -57,7 +46,7 @@ public class ParkingSpaceService {
     /**
      * Creates a spatial index if it does not already exist.
      */
-    public void initializeDatabaseIndex() {
+    public void initializeDbIndex() {
         log.debug("Initializing index for table '{}' ...", PARKING_SPACES);
         parkingSpaceRepo.createMainDataIndex();
         log.info("Index for table '{}' created.", PARKING_SPACES);
@@ -79,7 +68,7 @@ public class ParkingSpaceService {
 
         if (geoJsonData.contains("Polygon")) {
             log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
-            loadPolygons(geoJsonData);
+            loadPolygonsFromGeoJson(geoJsonData);
             log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
         } else {
             log.warn("File '{}' does not contain parking spaces data.",filePath);
@@ -96,55 +85,50 @@ public class ParkingSpaceService {
      */
     public void loadCsv(String filePath) throws IOException, CsvValidationException {
         log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
-        List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
-        for (ParkingSpace parkingSpace : csvParkingSpaces) {
-            if (isPolygonUnique(parkingSpace.getPolygon())) {
-                parkingSpaceRepo.save(parkingSpace);
-            } else {
-                log.warn("Parking space from CSV file not loaded and skipped! A parking space with the same polygon already exists in the '{}' table.",
-                    PARKING_SPACES);
-            }
-        }
+        loadPolygonsFromCsv(filePath);
         log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
     }
 
-    private void loadPolygons(String geoJsonData) throws IOException {
+    private void loadPolygonsFromCsv(String filePath) throws IOException, CsvValidationException {
+        List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
+        int duplicatePolygons = 0;
+        for (ParkingSpace parkingSpace : csvParkingSpaces) {
+            if (isPolygonUnique(parkingSpace.getPolygon())) {
+                parkingSpaceRepo.insertParkingSpaceWithCentroid(parkingSpace);
+            } else {
+                duplicatePolygons++;
+            }
+        }
+
+        if (duplicatePolygons > 0)
+            log.warn("{} parking spaces from CSV file were not loaded and skipped due to a duplication in the '{}' table.",
+                duplicatePolygons, PARKING_SPACES);
+    }
+
+    private void loadPolygonsFromGeoJson(String geoJsonData) throws IOException {
         int duplicatePolygons = 0;
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
             if (isPolygonUnique(polygon)) {
-                log.info("UNIQUE POLYGON FOUND: {}", polygon);
 
-                // get centroid
-                Point newPolygonCentroid = findCentroid(polygon); // trqbva da e POINT(13.372037166014309 52.55568845215163)
-                log.info("Centroid: {}", newPolygonCentroid);
+                // get new polygon's centroid
+                Point newPolygonCentroid = polygon.getCentroid(); // trqbva da e POINT(13.372037166014309 52.55568845215163) mnogo znaesh puk
 
-                // get 3 closest other centroids and loop over them
-                List<String> closestCentroids = parkingSpaceRepo.findClosestCentroids(newPolygonCentroid.toString());
-                log.info("Closest centroids: {}", closestCentroids);
+                // get 3 closest parking spaces by their centroids and loop over them
+                List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid.toString());
 
-                if (closestCentroids.isEmpty()) {
+                if (closestParkingSpacesByCentroid.isEmpty()) {
                     parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
                     continue;
                 }
 
-                for (String neighboring_centroid : closestCentroids) {
-                    // get polygon from centroid
-                    String polygonByCentroid = parkingSpaceRepo.findPolygonByCentroid(neighboring_centroid);
-                    Geometry polygonAsGeometry = parseWktToGeometry(polygonByCentroid);
-                    //Polygon neighboringPolygon;
-                        
-                    log.debug("Polygon by centroid: {}", polygonByCentroid);
-                    //Geometry neighboringPolygon = wktReader.read(polygonByCentroid);
-                    double interesection_area = polygonAsGeometry.intersection(polygon).getArea();
-                    log.debug("Intersection area: {}", interesection_area);
-                    if (interesection_area > 70) {
+                for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
+                    double intersectionArea = neighboringParkingSpace.getPolygon().intersection(polygon).getArea();
+                    log.debug("Intersection area: {}", intersectionArea);
+
+                    if (intersectionArea >= 70) {
                         overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
-                    } else if ((interesection_area > 0) && (interesection_area < 70)) {
-                        parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
                     } else {
-                        log.info("Polygon does not intersect with neighboring polygon.");
                         parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
-                        continue;
                     }  
                 }
             } else {
@@ -153,7 +137,7 @@ public class ParkingSpaceService {
         }
 
         if (duplicatePolygons > 0)
-            log.warn("{} parkings space from GeoJSON file were not loaded and skipped due to a duplication in the '{}' table.",
+            log.warn("{} parking spaces from GeoJSON file were not loaded and skipped due to a duplication in the '{}' table.",
                 duplicatePolygons, PARKING_SPACES);
     }
 
@@ -164,12 +148,8 @@ public class ParkingSpaceService {
     }
 
     private boolean isPolygonUnique(Polygon newPolygon) {
-        // Convert the new polygon to WKT (Well-Known Text)
-        String newPolygonWKT = new WKTWriter().write(newPolygon);
-
-        // Use a spatial query to check if at least one duplicate exist
-        long count = parkingSpaceRepo.countSamePolygons(newPolygonWKT);
-        log.info("Number of duplicate polygons: {}", count);
+        // Use a spatial query to check if a duplicate exist
+        long count = parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString());
 
         return count == 0; // If count is 0, the polygon is unique
     }
@@ -196,10 +176,5 @@ public class ParkingSpaceService {
         Date originalTimestamp = dateFormat.parse(mostRecentOriginalTimestamp.getTimestamp());
         
         return firstTimestamp.after(originalTimestamp) ? mostRecentFirstTimestamp : mostRecentOriginalTimestamp;
-    }
-
-    public Point findCentroid(Polygon polygon) {
-        Geometry geometry = (Geometry) polygon;
-        return geometry.getCentroid();
     }
 }
