@@ -1,11 +1,11 @@
 package org.gradle.backendpostgresqlapi.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
+import lombok.Data;
 import org.locationtech.jts.geom.Coordinate;
 
-@Getter
-@Setter
+@Data
+@Builder
 public class ParkingPointDto {
 	private long id;
 	private long editedParkingSpaceId;

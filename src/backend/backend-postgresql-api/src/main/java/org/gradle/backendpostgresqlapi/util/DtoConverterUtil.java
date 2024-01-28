@@ -10,16 +10,15 @@ import org.gradle.backendpostgresqlapi.entity.Timestamp;
 public class DtoConverterUtil {
 
 	public static EditedParkingSpaceDto convertToDto(EditedParkingSpace editedParkingSpace) {
-		EditedParkingSpaceDto editedParkingSpaceDto = new EditedParkingSpaceDto();
-		editedParkingSpaceDto.setId(editedParkingSpace.getId());
-		editedParkingSpaceDto.setParkingSpaceId(editedParkingSpace.getParkingSpaceId());
-		editedParkingSpaceDto.setCoordinates(editedParkingSpace.getPolygon().getCoordinates());
-		editedParkingSpaceDto.setOccupied(editedParkingSpace.isOccupied());
-		editedParkingSpaceDto.setArea(editedParkingSpace.getArea());
+		EditedParkingSpaceDto editedParkingSpaceDto = EditedParkingSpaceDto.builder()
+			.id(editedParkingSpace.getId())
+			.parkingSpaceId(editedParkingSpace.getParkingSpaceId())
+			.coordinates(editedParkingSpace.getPolygon().getCoordinates())
+			.occupied(editedParkingSpace.isOccupied())
+			.area(editedParkingSpace.getArea())
+			.capacity(editedParkingSpace.getCapacity())
+			.build();
 
-		if (editedParkingSpace.getCapacity() != null) {
-			editedParkingSpaceDto.setCapacity(editedParkingSpace.getCapacity());
-		}
 		if (editedParkingSpace.getPosition() != null) {
 			editedParkingSpaceDto.setPosition(editedParkingSpace.getPosition().getDisplayName());
 		}
@@ -28,19 +27,21 @@ public class DtoConverterUtil {
 	}
 
 	public static ParkingPointDto convertToDto(ParkingPoint parkingPoint) {
-		ParkingPointDto parkingPointDto = new ParkingPointDto();
-		parkingPointDto.setId(parkingPoint.getId());
-		parkingPointDto.setEditedParkingSpaceId(parkingPoint.getEditedParkingSpace().getId());
-		parkingPointDto.setCoordinates(parkingPoint.getPoint().getCoordinates());
+		ParkingPointDto parkingPointDto = ParkingPointDto.builder()
+			.id(parkingPoint.getId())
+			.editedParkingSpaceId(parkingPoint.getEditedParkingSpace().getId())
+			.coordinates(parkingPoint.getPoint().getCoordinates())
+			.build();
 
 		return parkingPointDto;
 	}
 
 	public static TimestampDto convertToDto(Timestamp timestamp) {
-		TimestampDto timestampDto = new TimestampDto();
-		timestampDto.setId(timestamp.getId());
-		timestampDto.setParkingPointId(timestamp.getParkingPoint().getId());
-		timestampDto.setTimestamp(timestamp.getTimestamp());
+		TimestampDto timestampDto = TimestampDto.builder()
+			.id(timestamp.getId())
+			.parkingPointId(timestamp.getParkingPoint().getId())
+			.timestamp(timestamp.getTimestamp())
+			.build();
 
 		return timestampDto;
 	}
