@@ -235,11 +235,31 @@ export class MapComponent {
                 },
               });
               polygon.on('click', (event) => {
+                const popup =polygon.getPopup()?.getContent()
                 // console.log("before ", this.activePolygonInteractionLayer.toString())
                 // TODO: add timestamp data
-                this.restApi.getTimestampData(parseElement.id).then((data)=>{
-                  console.log("timesatamp data ", data )
+                this.restApi.getTimestampData(parseElement.id).then((data:any)=>{
+                  console.log("timestamp data ", data )
+                  const tablePopupContent = `
+                      <div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Park Place Occupied</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${this.generateTableRows(data)}
+                          </tbody>
+                        </table>
+                      </div>
+                    `
+
+                  polygon.setPopupContent(popup + tablePopupContent)
                 })
+
+
+                console.log("pop", popup)
                 if (this.activePolygonInteractionLayer != undefined) {
                   this.activePolygonInteractionLayer.target.editing.disable()
                   this.mapClickInteraction(event);
@@ -436,5 +456,21 @@ export class MapComponent {
     );
 
     return uniqueCoordinates;
+  }
+  generateTableRows(timestampData: any[]): string {
+    if(timestampData.length == 0){
+      return '<tr><td>No data available</td></tr>'
+    }
+    return timestampData.map(item => {
+      const isOccupied = this.checkOccupancy(item.timestamp); // Implement your logic
+      return `<tr><td>${item.timestamp}</td></tr>`;
+    }).join('');
+  }
+  checkOccupancy(timestamp: string): boolean {
+    // Implement your logic to check if the parking place is occupied based on the timestamp
+    // For example, you can compare the timestamp with the current time
+    const currentTimestamp = new Date();
+    const parkingTimestamp = new Date(timestamp);
+    return parkingTimestamp <= currentTimestamp;
   }
 }
