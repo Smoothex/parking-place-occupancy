@@ -236,6 +236,10 @@ export class MapComponent {
               });
               polygon.on('click', (event) => {
                 // console.log("before ", this.activePolygonInteractionLayer.toString())
+                // TODO: add timestamp data
+                this.restApi.getTimestampData(parseElement.id).then((data)=>{
+                  console.log("timesatamp data ", data )
+                })
                 if (this.activePolygonInteractionLayer != undefined) {
                   this.activePolygonInteractionLayer.target.editing.disable()
                   this.mapClickInteraction(event);
