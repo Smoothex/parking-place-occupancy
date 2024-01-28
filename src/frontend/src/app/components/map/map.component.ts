@@ -95,11 +95,38 @@ export class MapComponent {
     if (this.debug) {
       console.log('Markers present before:', this.markerLayer);
     }
+    // change of polygon selection
+    /*if(this.activePolygonInteractionLayer != e){
+      console.log("clicked next polygon")
+      this.activePolygonInteractionLayer.target.editing.disable();
+      this.activePolygonInteractionLayer = e
+    }*/
+    console.log("Map interaction ", this.activePolygonInteractionLayer)
     if (this.activePolygonInteractionLayer != undefined) {
       console.log('New edited polygon', this.activePolygonInteractionLayer);
+      const polygonID = this.activePolygonInteractionLayer.sourceTarget._leaflet_id;
+      const index = this.parkingSpaceData.findIndex(
+        (item: any) => item.polygon_layer._leaflet_id === polygonID
+      );
+      const oldGeometry =this.removeDuplicates(this.parkingSpaceData[index].simplified_edited_coordinates)
+      var newDuplGeomerty = this.activePolygonInteractionLayer.sourceTarget._latlngs[0].map((item: any) => {
+        return [item.lat, item.lng];
+      });
+      const newGeomerty = this.removeDuplicates(newDuplGeomerty)
+      console.log("old geometry",oldGeometry)
+      console.log("new geometry",newGeomerty)
+      // TODO: add if any coordinate changed only show alert otherwise leave it be
+      const sameOrNot=this.arraysHaveSameElementsUpToLastSecond(newGeomerty , oldGeometry)
+      console.log("same or not ", sameOrNot)
+
+      if(!sameOrNot){
+      this.activePolygonInteractionLayer.target.editing.disable();
       alert('The last edited polygon will be edited permanently');
       this.editPolygonEvent(this.activePolygonInteractionLayer);
+      }else{
       this.activePolygonInteractionLayer.target.editing.disable();
+      }
+
       console.log('editing disabled');
       this.activePolygonInteractionLayer = undefined;
       // TODO: add editing check here
@@ -150,7 +177,7 @@ export class MapComponent {
         data.forEach((element: any) => {
           // const parseElement = JSON.parse(element);
           const parseElement = element;
-          console.log(element);
+          // console.log(element);
           this.restApi
             .getParkingSpaceAreaWithId(parseElement.id)
             .then(
@@ -167,27 +194,29 @@ export class MapComponent {
                 obj.y,
                 obj.x,
               ]);
-              console.log(arrayOfArrays);
+              // console.log(arrayOfArrays);
               parseElement.coordinates = arrayOfArrays;
               const simple = this.simplifyGeoPolygon(arrayOfArrays);
+              const defaultPopup =    'Id: ' +
+                parseElement.id +
+                '<br>' +
+                'Occupied: ' +
+                JSON.stringify(parseElement.occupied) +
+                ' <br>' +
+                'Area: ' +
+                area +
+                ' m&sup2;' +
+                '<br>' +
+                'Capacity: ' +
+                parseElement.capacity +
+                '<br>' +
+                '<div style="text-align: center; margin-top: 10px;">To edit, drag the markers on the border, and click outside the parking place to save it</div>'
+              // ' <button (click)="`${enable}`">Edit</button>'
+
               let polygon = L.polygon(simple)
                 .addTo(this.map)
-                .bindPopup(
-                  'Id: ' +
-                    parseElement.id +
-                    '<br>' +
-                    'Occupied: ' +
-                    JSON.stringify(parseElement.occupied) +
-                    ' <br>' +
-                    'Area: ' +
-                    area +
-                    ' m&sup2;' +
-                    '<br>' +
-                    'Capacity: ' +
-                    parseElement.capacity +
-                    '<br>' +
-                    ' <button (click)="`${enable}`">Edit</button>'
-                );
+                .bindPopup(defaultPopup
+               );
               let polygonColor: string = 'green';
               if (parseElement.occupied) {
                 polygonColor = 'red';
@@ -207,9 +236,37 @@ export class MapComponent {
                 },
               });
               polygon.on('click', (event) => {
+                const popup =polygon.getPopup()?.getContent()
+                // console.log("before ", this.activePolygonInteractionLayer.toString())
+                // TODO: add timestamp data
+                this.restApi.getTimestampData(parseElement.id).then((data:any)=>{
+                  console.log("timestamp data ", data )
+                  const tablePopupContent = `
+                      <div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Park Place Occupied during</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${this.generateTableRows(data)}
+                          </tbody>
+                        </table>
+                      </div>
+                    `
+
+                  polygon.setPopupContent(defaultPopup + tablePopupContent)
+                })
+
+
+                console.log("pop", popup)
                 if (this.activePolygonInteractionLayer != undefined) {
+                  this.activePolygonInteractionLayer.target.editing.disable()
                   this.mapClickInteraction(event);
-                } else {
+                }
+                if(this.activePolygonInteractionLayer === undefined){
+
                   this.activePolygonInteractionLayer = event;
                 }
                 console.log(event + 'parse' + parseElement.id);
@@ -292,13 +349,7 @@ export class MapComponent {
   }
 
   editPolygonEvent(polygonEvent: any) {
-    /*
-     * TODO: remove markers being placed on the same spot ~ done
-     * TODO: find the coordinate in the real polygon and edit/replace them
-     ! * TODO: update the data value array ~ Not implemented, have to do think about the redo feature ~ not a necessary function 
-     * TODO: re-create only the particular array~ no need as the old polygon shape can not be agin defined
-     * TODO: add checks for not creating an impossible polygon
-     */
+
     const polygonID = polygonEvent.sourceTarget._leaflet_id;
     const index = this.parkingSpaceData.findIndex(
       (item: any) => item.polygon_layer._leaflet_id === polygonID
@@ -381,5 +432,46 @@ export class MapComponent {
 
       editableLayers.addLayer(layer);
     });
+  }
+
+  arraysHaveSameElementsUpToLastSecond(arr1: any[], arr2: any[]): boolean {
+    const stringifyCoordinates = (arr: number[][]) => arr.map(coord => coord.join(','));
+
+    const stringifiedArr1 = stringifyCoordinates(arr1);
+    const stringifiedArr2 = stringifyCoordinates(arr2);
+
+    return (
+      stringifiedArr1.length === stringifiedArr2.length &&
+      new Set(stringifiedArr1).size === new Set(stringifiedArr2).size &&
+      stringifiedArr1.every(element => new Set(stringifiedArr2).has(element))
+    );
+  }
+
+  removeDuplicates(coordinates: any[][]): any[] {
+    const uniqueCoordinates = coordinates.filter(
+      (coord, index, self) =>
+        index ===
+        self.findIndex(
+          (c) => c[0] === coord[0] && c[1] === coord[1]
+        )
+    );
+
+    return uniqueCoordinates;
+  }
+  generateTableRows(timestampData: any[]): string {
+    if(timestampData.length == 0){
+      return '<tr><td>No data available</td></tr>'
+    }
+    return timestampData.map(item => {
+      const isOccupied = this.checkOccupancy(item.timestamp); // Implement your logic
+      return `<tr><td>${item.timestamp}</td></tr>`;
+    }).join('');
+  }
+  checkOccupancy(timestamp: string): boolean {
+    // Implement your logic to check if the parking place is occupied based on the timestamp
+    // For example, you can compare the timestamp with the current time
+    const currentTimestamp = new Date();
+    const parkingTimestamp = new Date(timestamp);
+    return parkingTimestamp <= currentTimestamp;
   }
 }
