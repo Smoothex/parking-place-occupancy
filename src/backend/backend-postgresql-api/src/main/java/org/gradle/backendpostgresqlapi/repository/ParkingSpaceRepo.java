@@ -30,6 +30,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
         " WHERE ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) <= 10 " +
         "ORDER BY ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) ASC LIMIT 3";
 
+    // todo remove redundant code
     String CHECK_FOR_OVERLAPS = 
         "SELECT  edit_id, " +
                 "ROUND(CAST(ST_Area(ST_Intersection(CAST(edit_coordinates AS GEOMETRY), (SELECT edit_coordinates FROM public.edited_parking_spaces WHERE edit_id = :id))) AS NUMERIC), 2) AS overlap_area, " + //

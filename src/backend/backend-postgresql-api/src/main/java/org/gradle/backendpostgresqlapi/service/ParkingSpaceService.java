@@ -9,16 +9,10 @@ import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
 import org.locationtech.jts.geom.Point;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
@@ -33,13 +27,11 @@ public class ParkingSpaceService {
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
     private final OverlappingParkingSpaceRepo overlappingParkingSpaceRepo;
-    private final TimestampService timestampService;
 
     @Autowired
-    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo, TimestampService timestampService, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo) {
+    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo) {
         this.resourceLoader = resourceLoader;
         this.parkingSpaceRepo = parkingSpaceRepo;
-        this.timestampService = timestampService;
         this.overlappingParkingSpaceRepo = overlappingParkingSpaceRepo;
     }
 
@@ -111,25 +103,25 @@ public class ParkingSpaceService {
             if (isPolygonUnique(polygon)) {
 
                 // get new polygon's centroid
-                Point newPolygonCentroid = polygon.getCentroid(); // trqbva da e POINT(13.372037166014309 52.55568845215163) mnogo znaesh puk
+                Point newPolygonCentroid = polygon.getCentroid();
 
                 // get 3 closest parking spaces by their centroids and loop over them
                 List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid.toString());
 
-                if (closestParkingSpacesByCentroid.isEmpty()) {
-                    parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
-                    continue;
-                }
-
+                boolean isPolygonOverlapping = false;
                 for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
                     double intersectionArea = neighboringParkingSpace.getPolygon().intersection(polygon).getArea();
                     log.debug("Intersection area: {}", intersectionArea);
 
                     if (intersectionArea >= 70) {
                         overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
-                    } else {
-                        parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
-                    }  
+                        isPolygonOverlapping = true;
+                        break;
+                    }
+                }
+
+                if (!isPolygonOverlapping) {
+                    parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
                 }
             } else {
                 duplicatePolygons++;
@@ -148,33 +140,9 @@ public class ParkingSpaceService {
     }
 
     private boolean isPolygonUnique(Polygon newPolygon) {
-        // Use a spatial query to check if a duplicate exist
+        // Use a spatial query to check if a duplicate exists
         long count = parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString());
 
         return count == 0; // If count is 0, the polygon is unique
-    }
-    
-    private TimestampDto getMostRecentTimestamp(List<TimestampDto> firstTimestamps, List<TimestampDto> originalTimestamps) throws ParseException {
-        if (firstTimestamps.isEmpty() && originalTimestamps.isEmpty()) {
-            return null;
-        }
-    
-        if (firstTimestamps.isEmpty()) {
-            return Collections.max(originalTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
-        }
-    
-        if (originalTimestamps.isEmpty()) {
-            return Collections.max(firstTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
-        }
-    
-        TimestampDto mostRecentFirstTimestamp = Collections.max(firstTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
-        TimestampDto mostRecentOriginalTimestamp = Collections.max(originalTimestamps, Comparator.comparing(TimestampDto::getTimestamp));
-    
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-        
-        Date firstTimestamp = dateFormat.parse(mostRecentFirstTimestamp.getTimestamp());
-        Date originalTimestamp = dateFormat.parse(mostRecentOriginalTimestamp.getTimestamp());
-        
-        return firstTimestamp.after(originalTimestamp) ? mostRecentFirstTimestamp : mostRecentOriginalTimestamp;
     }
 }

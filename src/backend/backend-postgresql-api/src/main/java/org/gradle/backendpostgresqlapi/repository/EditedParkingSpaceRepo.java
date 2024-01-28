@@ -1,6 +1,5 @@
 package org.gradle.backendpostgresqlapi.repository;
 
-import java.math.BigDecimal;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.util.TableNameUtil;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +18,7 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
 
         String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.EDITED_PARKING_SPACES
                         + " SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) WHERE edit_id = :id";
+        // todo move it to parking space repo
         String GET_ID_BY_POINT = "SELECT edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES
                         + " WHERE ST_Contains(cast(edit_coordinates as GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
         String GET_NEIGHBORS = "SELECT p2.edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES + " p1 " +
@@ -46,6 +46,4 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
 
         @Query(value = GET_NEIGHBORS, nativeQuery = true)
         List<Long> findNeighborIds(@Param("id") Long id);
-
-
 }

@@ -27,22 +27,18 @@ public class DtoConverterUtil {
 	}
 
 	public static ParkingPointDto convertToDto(ParkingPoint parkingPoint) {
-		ParkingPointDto parkingPointDto = ParkingPointDto.builder()
+		return ParkingPointDto.builder()
 			.id(parkingPoint.getId())
 			.editedParkingSpaceId(parkingPoint.getEditedParkingSpace().getId())
 			.coordinates(parkingPoint.getPoint().getCoordinates())
 			.build();
-
-		return parkingPointDto;
 	}
 
 	public static TimestampDto convertToDto(Timestamp timestamp) {
-		TimestampDto timestampDto = TimestampDto.builder()
+		return TimestampDto.builder()
 			.id(timestamp.getId())
 			.parkingPointId(timestamp.getParkingPoint().getId())
 			.timestamp(timestamp.getTimestamp())
 			.build();
-
-		return timestampDto;
 	}
 }
