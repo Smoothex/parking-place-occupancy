@@ -88,10 +88,10 @@ public class ParkingPointService {
                 Optional<Long> editedParkingSpaceId = editedParkingSpaceRepo.getIdByPointWithin(pointWKT);
                 if (editedParkingSpaceId.isPresent()) {
                     EditedParkingSpace editedParkingSpace = editedParkingSpaceRepo.findById(editedParkingSpaceId.get()).orElse(null);
-                    log.warn("Edited parking space with id '{}' found.", editedParkingSpaceId.get());
+                    log.debug("Edited parking space with id '{}' found.", editedParkingSpaceId.get());
                     parkingPoint.setEditedParkingSpace(editedParkingSpace);
                 } else {
-                    log.warn("No edited parking space found for point '{}'.", pointWKT);
+                    log.debug("No edited parking space found for point '{}'.", pointWKT);
                     parkingPoint.setEditedParkingSpace(null);
                 }
 

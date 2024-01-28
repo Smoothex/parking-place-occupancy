@@ -12,7 +12,6 @@ import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
-import java.math.BigDecimal;
 
 import java.io.IOException;
 import java.util.List;
