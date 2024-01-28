@@ -197,25 +197,26 @@ export class MapComponent {
               // console.log(arrayOfArrays);
               parseElement.coordinates = arrayOfArrays;
               const simple = this.simplifyGeoPolygon(arrayOfArrays);
+              const defaultPopup =    'Id: ' +
+                parseElement.id +
+                '<br>' +
+                'Occupied: ' +
+                JSON.stringify(parseElement.occupied) +
+                ' <br>' +
+                'Area: ' +
+                area +
+                ' m&sup2;' +
+                '<br>' +
+                'Capacity: ' +
+                parseElement.capacity +
+                '<br>' +
+                '<div style="text-align: center; margin-top: 10px;">To edit, drag the markers on the border, and click outside the parking place to save it</div>'
+              // ' <button (click)="`${enable}`">Edit</button>'
+
               let polygon = L.polygon(simple)
                 .addTo(this.map)
-                .bindPopup(
-                  'Id: ' +
-                    parseElement.id +
-                    '<br>' +
-                    'Occupied: ' +
-                    JSON.stringify(parseElement.occupied) +
-                    ' <br>' +
-                    'Area: ' +
-                    area +
-                    ' m&sup2;' +
-                    '<br>' +
-                    'Capacity: ' +
-                    parseElement.capacity +
-                    '<br>' +
-                  '<div style="text-align: center; margin-top: 10px;">To edit, drag the markers on the border, and click outside the parking place to save it</div>'
-                    // ' <button (click)="`${enable}`">Edit</button>'
-                );
+                .bindPopup(defaultPopup
+               );
               let polygonColor: string = 'green';
               if (parseElement.occupied) {
                 polygonColor = 'red';
@@ -245,7 +246,7 @@ export class MapComponent {
                         <table>
                           <thead>
                             <tr>
-                              <th>Park Place Occupied</th>
+                              <th>Park Place Occupied during</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -255,7 +256,7 @@ export class MapComponent {
                       </div>
                     `
 
-                  polygon.setPopupContent(popup + tablePopupContent)
+                  polygon.setPopupContent(defaultPopup + tablePopupContent)
                 })
 
 
