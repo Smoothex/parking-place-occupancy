@@ -18,7 +18,7 @@ public class ParkingPoint {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "edited_parking_space_id", nullable = true)
+    @JoinColumn(name = "edited_parking_space_id")
     private EditedParkingSpace editedParkingSpace;
 
     @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "pp_coordinates", nullable = false, updatable = false)

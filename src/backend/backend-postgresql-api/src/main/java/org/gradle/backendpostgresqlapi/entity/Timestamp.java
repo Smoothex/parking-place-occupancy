@@ -16,7 +16,7 @@ public class Timestamp {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "parking_point_id", nullable = true)
+    @JoinColumn(name = "parking_point_id", nullable = false)
     private ParkingPoint parkingPoint;
 
     @Column(name = "t_timestamp", nullable = false, updatable = false)

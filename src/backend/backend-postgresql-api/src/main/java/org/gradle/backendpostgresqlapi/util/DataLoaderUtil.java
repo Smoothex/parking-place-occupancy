@@ -18,7 +18,7 @@ public class DataLoaderUtil {
 		EditedParkingSpaceService editedParkingSpaceService, ParkingPointService parkingPointService) throws IOException, CsvValidationException {
 		if (!CollectionUtils.isEmpty(filePaths)) {
 			loadFromParkingSpacesFiles(filePaths, parkingSpaceService, editedParkingSpaceService);
-			//loadFromTimestampFiles(filePaths, parkingPointService);
+			loadFromTimestampFiles(filePaths, parkingPointService);
 		} else {
 			log.warn("No data files configured for loading.");
 		}

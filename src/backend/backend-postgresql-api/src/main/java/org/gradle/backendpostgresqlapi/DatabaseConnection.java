@@ -35,7 +35,7 @@ public class DatabaseConnection {
         ParkingPointService parkingPointService, TimestampService timestampService, GeoDataFile geoDataFile) {
         return args -> {
             // Initialize indexes for some tables
-            parkingSpaceService.initializeDatabaseIndex();
+            parkingSpaceService.initializeDbIndex();
             parkingPointService.initializeDbIndex();
             timestampService.initializeDbIndex();
 
