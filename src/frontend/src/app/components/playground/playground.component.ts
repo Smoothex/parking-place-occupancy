@@ -30,7 +30,33 @@ export class PlaygroundComponent {
     }),
   };
 
-
+  timestamp_data=[
+    {
+      "id": 321,
+      "parkingPointId": 313,
+      "timestamp": "24.10.2023 07:23:43"
+    },
+    {
+      "id": 4202,
+      "parkingPointId": 313,
+      "timestamp": "01.11.2023 08:04:50"
+    },
+    {
+      "id": 4273,
+      "parkingPointId": 313,
+      "timestamp": "18.09.2023 06:50:57"
+    },
+    {
+      "id": 27124,
+      "parkingPointId": 313,
+      "timestamp": "17.10.2023 06:59:30"
+    },
+    {
+      "id": 36975,
+      "parkingPointId": 313,
+      "timestamp": "25.10.2023 07:14:57"
+    }
+  ]
   private initMap(): void {
     this.map = L.map('map').setView(this.tryArray[0], 15);
 
@@ -69,6 +95,7 @@ export class PlaygroundComponent {
     L.control.layers(baseLayers).addTo(this.map);
 
     // this.checkOverlappingPolygon()
+
 
   }
 
@@ -204,25 +231,56 @@ export class PlaygroundComponent {
 
     const originalPolygon = L.polygon(originalCoords).addTo(this.map);
 
+
     // Simplify the polygon using turf.js
     const originalGeoJSON = turf.polygon([originalCoords]);
     const tolerance = 0.00000005; // Adjust the tolerance as needed
     const simplifiedGeoJSON = turf.simplify(originalGeoJSON, { tolerance });
     const simplifiedCoords: any = simplifiedGeoJSON.geometry.coordinates[0];
     simplifiedCoords.forEach((element:any) => {
-      var marker = this.createMarkerPersistentStorage(element)
+      // var marker = this.createMarkerPersistentStorage(element)
 
 
     });
 
     const simplifiedPolygon = L.polygon(simplifiedCoords, { color: 'blue' }).addTo(this.map);
-    simplifiedPolygon.on('click', this.editing2.bind(this))
+    // simplifiedPolygon.on('click', this.editing2.bind(this))
     console.log(originalCoords)
     console.log(simplifiedCoords)
     const newTol = 0
     const simplifiedCoordschanged =  turf.polygon([simplifiedCoords]);
     const revertedPolygon = turf.simplify(simplifiedCoordschanged, { tolerance:newTol });
     console.log("reverted ",revertedPolygon)
+
+    console.log()
+    console.log("------------------------------------------")
+
+   /* simplifiedPolygon.bindPopup(`
+  <div>
+    <p>Timestamp: <span id="timestamp">00:00:00</span></p>
+    <input type="range" id="slider" min="0" max="100" value="50">
+  </div>
+`)*/
+// Add a custom popup content with a table
+    const tablePopupContent = `
+  <div>
+    <table>
+      <thead>
+        <tr>
+          <th>Park Place Occupied</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${this.generateTableRows(this.timestamp_data)}
+      </tbody>
+    </table>
+
+  </div>
+`;
+    simplifiedPolygon.bindPopup(tablePopupContent, { maxWidth: 300 })
+
+
+
   }
   editing2(e: any) {
     console.log("polygonis", e)
@@ -239,9 +297,22 @@ export class PlaygroundComponent {
     // this.markerLayer.push(marker);
   }
 
+  generateTableRows(timestampData: any[]): string {
+    return timestampData.map(item => {
+      const isOccupied = this.checkOccupancy(item.timestamp); // Implement your logic
+      return `<tr><td>${item.timestamp}</td></tr>`;
+    }).join('');
+  }
+  checkOccupancy(timestamp: string): boolean {
+    // Implement your logic to check if the parking place is occupied based on the timestamp
+    // For example, you can compare the timestamp with the current time
+    const currentTimestamp = new Date();
+    const parkingTimestamp = new Date(timestamp);
+    return parkingTimestamp <= currentTimestamp;
+  }
 
 
-  checkOverlappingPolygon() {
+ /* checkOverlappingPolygon() {
     this.parkingSpaceData = this.storage.getData()
     console.log("starting check")
     console.log(this.parkingSpaceData)
@@ -251,7 +322,7 @@ export class PlaygroundComponent {
       const element1 = element;
       const poly1 = turf.polygon([element1.simplified_initial_coordinates])
       console.log("poly1", poly1)
-      // TODO get data as per the indices 
+      // TODO get data as per the indices
       this.parkingSpaceData.forEach((element2: any,index:number) => {
 
         const poly2 = turf.polygon([element2.simplified_initial_coordinates])
@@ -261,12 +332,12 @@ export class PlaygroundComponent {
         if (flag_intersection) {
           console.error("Intersecting or not ",flag_intersection, poly1, poly2)
         }
-  
-        
-      })
-      
-    });
- 
-  }
 
+
+      })
+
+    });
+
+  }
+*/
 }
