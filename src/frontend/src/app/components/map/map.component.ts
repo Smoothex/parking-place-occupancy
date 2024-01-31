@@ -237,6 +237,9 @@ export class MapComponent {
                 const popup =polygon.getPopup()?.getContent()
                 // console.log("before ", this.activePolygonInteractionLayer.toString())
                 // TODO: add timestamp data
+                const polygonCenter = polygon.getCenter()
+                const bounds = polygon.getBounds();
+                this.map.fitBounds(bounds)
                 this.restApi.getTimestampData(parseElement.id).then((data:any)=>{
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
@@ -256,7 +259,8 @@ export class MapComponent {
                       </div>
                     `
 
-                  polygon.setPopupContent(defaultPopup + tablePopupContent)
+                  polygon
+                    .setPopupContent(defaultPopup + tablePopupContent)
                 })
 
 
