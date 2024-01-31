@@ -197,21 +197,19 @@ export class MapComponent {
               // console.log(arrayOfArrays);
               parseElement.coordinates = arrayOfArrays;
               const simple = this.simplifyGeoPolygon(arrayOfArrays);
-              const defaultPopup =    'Id: ' +
-                parseElement.id +
-                '<br>' +
-                'Occupied: ' +
-                JSON.stringify(parseElement.occupied) +
-                ' <br>' +
-                'Area: ' +
-                area +
-                ' m&sup2;' +
-                '<br>' +
-                'Capacity: ' +
-                parseElement.capacity +
-                '<br>' +
-                '<div style="text-align: center; margin-top: 10px;">To edit, drag the markers on the border, and click outside the parking place to save it</div>'
-              // ' <button (click)="`${enable}`">Edit</button>'
+              const defaultPopup =
+                `
+                  <div style="font-family: 'Arial', sans-serif; color: #333; padding: 15px;">
+                    <h3 style="margin-bottom: 10px;">ID: ${parseElement.id}</h3>
+                      <p style="margin: 0 0 10px;">Occupied: ${parseElement.occupied? "Yes": "No"}</p>
+                      <p style="margin: 0 0 10px;">Area: ${area} m&sup2;</p>
+                      <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity}</p>
+                      <div style="text-align: center; margin-top: 10px; font-style: italic; color: #666;">
+                                To edit, drag the markers on the border, and click outside the parking place to save it
+                      </div>
+                  </div>
+                `
+
 
               let polygon = L.polygon(simple)
                 .addTo(this.map)
@@ -242,11 +240,13 @@ export class MapComponent {
                 this.restApi.getTimestampData(parseElement.id).then((data:any)=>{
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
-                      <div>
-                        <table>
-                          <thead>
+                      <div style="font-family: 'Arial', sans-serif; color: #333; padding: 15px;">
+                       <h3 style="margin-bottom: 10px;">Park Place Occupied during</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                          <thead style="background-color: #f2f2f2;">
                             <tr>
-                              <th>Park Place Occupied during</th>
+                                <th style="padding: 8px; text-align: left;">Date</th>
+                                <th style="padding: 8px; text-align: left;">Time</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -463,8 +463,9 @@ export class MapComponent {
       return '<tr><td>No data available</td></tr>'
     }
     return timestampData.map(item => {
-      const isOccupied = this.checkOccupancy(item.timestamp); // Implement your logic
-      return `<tr><td>${item.timestamp}</td></tr>`;
+      const isOccupied = this.checkOccupancy(item.timestamp);
+      const [datePart, timePart] = item.timestamp.split(' ');
+      return `<tr><td>${datePart}</td><td>${timePart}</td></tr>`;
     }).join('');
   }
   checkOccupancy(timestamp: string): boolean {
