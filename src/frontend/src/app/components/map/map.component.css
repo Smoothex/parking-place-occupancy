@@ -6,12 +6,20 @@
     bottom: 0;
     margin: 30px;
   }
-  
+
   .map-frame {
     border: 2px solid black;
     height: 100%;
   }
-  
+
   #map {
     height: 100%;
   }
+
+.popup-container {
+  max-height: 300px; /* Set a fixed maximum height for the popup */
+  overflow-y: auto; /* Enable vertical scrolling when content exceeds the container height */
+  padding: 15px; /* Add padding for better aesthetics */
+  font-family: 'Arial', sans-serif; /* Set a font family */
+  color: #333; /* Set text color */
+}
