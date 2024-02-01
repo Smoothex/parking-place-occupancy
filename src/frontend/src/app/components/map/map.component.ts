@@ -203,7 +203,7 @@ export class MapComponent {
                     <h3 style="margin-bottom: 10px;">ID: ${parseElement.id}</h3>
                       <p style="margin: 0 0 10px;">Occupied: ${parseElement.occupied? "Yes": "No"}</p>
                       <p style="margin: 0 0 10px;">Area: ${area} m&sup2;</p>
-                      <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity}</p>
+                      <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity === -1 ? 'N/A' : parseElement.capacity}</p>
                       <div style="text-align: center; margin-top: 10px; font-style: italic; color: #666;">
                                 To edit, drag the markers on the border, and click outside the parking place to save it
                       </div>
@@ -244,7 +244,7 @@ export class MapComponent {
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
                       <div style="font-family: 'Arial', sans-serif; color: #333; padding: 15px;">
-                       <h3 style="margin-bottom: 10px;">Park Place Occupied during</h3>
+                       <h3 style="margin-bottom: 10px;">Parking space occupied at</h3>
                         <table style="width: 100%; border-collapse: collapse;">
                           <thead style="background-color: #f2f2f2;">
                             <tr>
