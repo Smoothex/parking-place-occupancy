@@ -240,7 +240,7 @@ export class MapComponent {
                 const polygonCenter = polygon.getCenter()
                 const bounds = polygon.getBounds();
                 this.map.fitBounds(bounds)
-                this.restApi.getTimestampData(parseElement.id).then((data:any)=>{
+                this.restApi.getTimestampDataHistory(parseElement.id).then((data:any)=>{
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
                       <div style="font-family: 'Arial', sans-serif; color: #333; padding: 15px;">
@@ -467,8 +467,8 @@ export class MapComponent {
       return '<tr><td>No data available</td></tr>'
     }
     return timestampData.map(item => {
-      const isOccupied = this.checkOccupancy(item.timestamp);
-      const [datePart, timePart] = item.timestamp.split(' ');
+      const isOccupied = this.checkOccupancy(item);
+      const [datePart, timePart] = item.split(' ');
       return `<tr><td>${datePart}</td><td>${timePart}</td></tr>`;
     }).join('');
   }

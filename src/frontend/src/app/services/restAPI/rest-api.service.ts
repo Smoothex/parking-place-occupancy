@@ -181,4 +181,29 @@ export class RestAPIService {
         });
     });
   }
+
+  getTimestampDataHistory(parkingSpaceId: string) {
+    return new Promise((resolve) => {
+      console.log('getTimestampData');
+      const options = {
+        // headers: new HttpHeaders().set("APP-USER-ID", this.userId),
+        // params: new HttpParams().set("occupied", occupied),
+      };
+      this.http
+        .get(
+          this.apiURL + 'parking-spaces/' + parkingSpaceId + '/history',
+          options
+        )
+        .pipe()
+        .subscribe({
+          next: (data) => {
+            resolve(data);
+            console.log("history",data);
+          },
+          error: (err) => {
+            console.error('error generated', err);
+          },
+        });
+    });
+  }
 }
