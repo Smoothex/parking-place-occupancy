@@ -2,8 +2,8 @@ package org.gradle.backendpostgresqlapi.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
-import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
 import org.gradle.backendpostgresqlapi.service.TimestampService;
@@ -121,16 +121,15 @@ public class EditedParkingSpaceController {
     @GetMapping("/{id}/history")
     public ResponseEntity<List<String>> getAllTimestampsByEditedParkingSpaceId(@PathVariable long id) {
 
-        List<ParkingPointDto> parkingPointDtos = parkingPointService.getAllParkingPointsByEditedParkingSpaceIdAsDto(id);
-        List<String> timestamps = new ArrayList<>();
+        List<String> timestampsAsStrings = new ArrayList<>();
         List<Date> timestampsAsDates = new ArrayList<>();
 
         try {
-            for (ParkingPointDto parkingPointDto : parkingPointDtos) {
-                timestamps.addAll(timestampService.getAllTimestampsByParkingPointId(parkingPointDto.getId()));
+            for (ParkingPoint parkingPoint : parkingPointService.getAllParkingPointsByEditedParkingSpaceId(id)) {
+                timestampsAsStrings.addAll(timestampService.getAllTimestampsByParkingPointId(parkingPoint.getId()));
             }
 
-            for (String timestampStr : timestamps) {
+            for (String timestampStr : timestampsAsStrings) {
                 timestampsAsDates.add(parseStringToDate(timestampStr));
             }
         } catch(ParseException exception) {
@@ -139,9 +138,9 @@ public class EditedParkingSpaceController {
 
         // Sort dates, format them back to strings and remove duplicates
         Collections.sort(timestampsAsDates);
-        timestamps.clear();
-        timestampsAsDates.forEach(t -> timestamps.add(formatDateToString(t)));
+        timestampsAsStrings.clear();
+        timestampsAsDates.forEach(t -> timestampsAsStrings.add(formatDateToString(t)));
 
-        return ResponseEntity.ok( new ArrayList<>(new LinkedHashSet<>(timestamps)));
+        return ResponseEntity.ok( new ArrayList<>(new LinkedHashSet<>(timestampsAsStrings)));
     }
 }

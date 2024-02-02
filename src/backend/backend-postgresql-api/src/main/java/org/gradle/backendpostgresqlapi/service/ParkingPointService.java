@@ -1,13 +1,11 @@
 package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
-import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
 import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
@@ -49,9 +47,8 @@ public class ParkingPointService {
         log.info("Index for table '{}' created.", PARKING_POINTS);
     }
 
-    public List<ParkingPointDto> getAllParkingPointsByEditedParkingSpaceIdAsDto(long editedParkingSpaceId) {
-        return parkingPointRepo.getParkingPointsByEditedParkingSpaceId(editedParkingSpaceId).
-            stream().map(DtoConverterUtil::convertToDto).toList();
+    public List<ParkingPoint> getAllParkingPointsByEditedParkingSpaceId(long editedParkingSpaceId) {
+        return parkingPointRepo.getParkingPointsByEditedParkingSpaceId(editedParkingSpaceId);
     }
 
     /**

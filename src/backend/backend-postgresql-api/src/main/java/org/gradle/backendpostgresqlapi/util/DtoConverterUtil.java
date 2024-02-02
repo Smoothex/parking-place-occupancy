@@ -1,9 +1,7 @@
 package org.gradle.backendpostgresqlapi.util;
 
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
-import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
-import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 
 public class DtoConverterUtil {
 
@@ -25,13 +23,5 @@ public class DtoConverterUtil {
 		}
 
 		return editedParkingSpaceDto;
-	}
-
-	public static ParkingPointDto convertToDto(ParkingPoint parkingPoint) {
-		return ParkingPointDto.builder()
-			.id(parkingPoint.getId())
-			.editedParkingSpaceId(parkingPoint.getEditedParkingSpace().getId())
-			.coordinates(parkingPoint.getPoint().getCoordinates())
-			.build();
 	}
 }

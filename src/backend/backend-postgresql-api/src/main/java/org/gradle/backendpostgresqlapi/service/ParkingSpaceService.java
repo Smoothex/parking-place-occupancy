@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
@@ -109,7 +110,11 @@ public class ParkingSpaceService {
 
     private void processParkingSpace(Polygon polygon) {
         if (isPolygonUnique(polygon)) {
-    
+            // Check if polygon is self-intersecting and if yes, cut the invalid part
+            if (!polygon.isValid()) {
+                polygon = (Polygon) polygon.buffer(0);
+            }
+
             // get new polygon's centroid
             Point newPolygonCentroid = polygon.getCentroid();
     
@@ -118,8 +123,9 @@ public class ParkingSpaceService {
     
             boolean isPolygonOverlapping = false;
             for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
-                double intersectionArea = neighboringParkingSpace.getPolygon().intersection(polygon).getArea();
-                log.info("Intersection area: {}", String.format("%.15f", intersectionArea));
+                Geometry intersectionGeom = neighboringParkingSpace.getPolygon().intersection(polygon);
+                double intersectionArea = intersectionGeom.getArea();
+                log.debug("Intersection area: {}", String.format("%.15f", intersectionArea));
     
                 if (intersectionArea >= 60) {
                     overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
@@ -132,7 +138,7 @@ public class ParkingSpaceService {
                 parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
             }
         } else {
-            log.warn("Parking space not loaded due to a duplication in the '{}' table.", PARKING_SPACES);
+            log.debug("Parking space not loaded due to a duplication in the '{}' table.", PARKING_SPACES);
         }
     }
 }
