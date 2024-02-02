@@ -83,54 +83,15 @@ public class ParkingSpaceService {
 
     private void loadPolygonsFromCsv(String filePath) throws IOException, CsvValidationException {
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
-        int duplicatePolygons = 0;
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
-            if (isPolygonUnique(parkingSpace.getPolygon())) {
-                parkingSpaceRepo.insertParkingSpaceWithCentroid(parkingSpace);
-            } else {
-                duplicatePolygons++;
-            }
+            processParkingSpace(parkingSpace.getPolygon());
         }
-
-        if (duplicatePolygons > 0)
-            log.warn("{} parking spaces from CSV file were not loaded and skipped due to a duplication in the '{}' table.",
-                duplicatePolygons, PARKING_SPACES);
     }
 
     private void loadPolygonsFromGeoJson(String geoJsonData) throws IOException {
-        int duplicatePolygons = 0;
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            if (isPolygonUnique(polygon)) {
-
-                // get new polygon's centroid
-                Point newPolygonCentroid = polygon.getCentroid();
-
-                // get 3 closest parking spaces by their centroids and loop over them
-                List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid.toString());
-
-                boolean isPolygonOverlapping = false;
-                for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
-                    double intersectionArea = neighboringParkingSpace.getPolygon().intersection(polygon).getArea();
-                    log.debug("Intersection area: {}", intersectionArea);
-
-                    if (intersectionArea >= 70) {
-                        overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
-                        isPolygonOverlapping = true;
-                        break;
-                    }
-                }
-
-                if (!isPolygonOverlapping) {
-                    parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
-                }
-            } else {
-                duplicatePolygons++;
-            }
+            processParkingSpace(polygon);
         }
-
-        if (duplicatePolygons > 0)
-            log.warn("{} parking spaces from GeoJSON file were not loaded and skipped due to a duplication in the '{}' table.",
-                duplicatePolygons, PARKING_SPACES);
     }
 
     public void calculateAndUpdateAreaColumn() {
@@ -144,5 +105,34 @@ public class ParkingSpaceService {
         long count = parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString());
 
         return count == 0; // If count is 0, the polygon is unique
+    }
+
+    private void processParkingSpace(Polygon polygon) {
+        if (isPolygonUnique(polygon)) {
+    
+            // get new polygon's centroid
+            Point newPolygonCentroid = polygon.getCentroid();
+    
+            // get 3 closest parking spaces by their centroids and loop over them
+            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid.toString());
+    
+            boolean isPolygonOverlapping = false;
+            for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
+                double intersectionArea = neighboringParkingSpace.getPolygon().intersection(polygon).getArea();
+                log.info("Intersection area: {}", String.format("%.15f", intersectionArea));
+    
+                if (intersectionArea >= 60) {
+                    overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
+                    isPolygonOverlapping = true;
+                    break;
+                }
+            }
+    
+            if (!isPolygonOverlapping) {
+                parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
+            }
+        } else {
+            log.warn("Parking space not loaded due to a duplication in the '{}' table.", PARKING_SPACES);
+        }
     }
 }
