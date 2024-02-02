@@ -2,16 +2,14 @@ package org.gradle.backendpostgresqlapi.util;
 
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
 import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
-import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
-import org.gradle.backendpostgresqlapi.entity.Timestamp;
 
 public class DtoConverterUtil {
 
 	public static EditedParkingSpaceDto convertToDto(EditedParkingSpace editedParkingSpace) {
 		Integer capacity = editedParkingSpace.getCapacity();
-        int convertedCapacity = (capacity != null) ? capacity.intValue() : -1;
+        int convertedCapacity = (capacity != null) ? capacity : -1;
 		
 		EditedParkingSpaceDto editedParkingSpaceDto = EditedParkingSpaceDto.builder()
 			.id(editedParkingSpace.getId())
@@ -34,14 +32,6 @@ public class DtoConverterUtil {
 			.id(parkingPoint.getId())
 			.editedParkingSpaceId(parkingPoint.getEditedParkingSpace().getId())
 			.coordinates(parkingPoint.getPoint().getCoordinates())
-			.build();
-	}
-
-	public static TimestampDto convertToDto(Timestamp timestamp) {
-		return TimestampDto.builder()
-			.id(timestamp.getId())
-			.parkingPointId(timestamp.getParkingPoint().getId())
-			.timestamp(timestamp.getTimestamp())
 			.build();
 	}
 }

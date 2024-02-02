@@ -14,13 +14,12 @@ import org.springframework.core.io.ResourceLoader;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
+
+import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.formatMillisecondsDateToString;
 
 @Slf4j
 public class JsonHandler {
@@ -137,8 +136,7 @@ public class JsonHandler {
         Timestamp timestamp = new Timestamp();
 
         long milliseconds = Long.parseLong(timestampNode.asText());
-        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.GERMANY);
-        timestamp.setTimestamp(dateFormat.format(milliseconds));
+        timestamp.setTimestamp(formatMillisecondsDateToString(milliseconds));
 
         return timestamp;
     }
