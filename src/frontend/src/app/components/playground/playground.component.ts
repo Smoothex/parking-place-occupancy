@@ -255,12 +255,63 @@ export class PlaygroundComponent {
     console.log()
     console.log("------------------------------------------")
 
-   /* simplifiedPolygon.bindPopup(`
-  <div>
-    <p>Timestamp: <span id="timestamp">00:00:00</span></p>
-    <input type="range" id="slider" min="0" max="100" value="50">
-  </div>
-`)*/
+    const centerCoords = [52.54266132492521, 13.350560198412687];
+
+// Define the vertices for the first polygon
+    const polygon1Vertices :any = [
+      [centerCoords[0] - 0.01, centerCoords[1] + 0.01],
+      [centerCoords[0] - 0.01, centerCoords[1] - 0.01],
+      // [centerCoords[0] + 0.01, centerCoords[1] - 0.01],
+      [centerCoords[0] + 0.001, centerCoords[1] + 0.001]
+    ];
+
+// Define the vertices for the second polygon
+    const polygon2Vertices:any = [
+      [centerCoords[0] - 0.01, centerCoords[1] - 0.01],
+      [centerCoords[0] - 0.01, centerCoords[1] + 0.01],
+      [centerCoords[0] + 0.01, centerCoords[1] + 0.01],
+    ];
+
+// Create Leaflet polygons
+    const polygon1 = L.polygon(polygon1Vertices, { color: 'blue' }).addTo(this.map);
+    const polygon2 = L.polygon(polygon2Vertices, { color: 'green' }).addTo(this.map);
+
+    const coords1:any = polygon1.getLatLngs()[0]; // Assuming a simple polygon, adjust accordingly
+    const coords2 :any = polygon2.getLatLngs()[0];
+    console.log("coorda",coords1)
+    // Calculate the centroid of each polygon
+    const centroid1 = turf.centroid(polygon1.toGeoJSON());
+    const centroid2 = turf.centroid(polygon2.toGeoJSON());
+
+// Calculate the translation vector to move the first polygon to the midpoint
+    const translationVector = [
+      centroid2.geometry.coordinates[0] - centroid1.geometry.coordinates[0],
+      centroid2.geometry.coordinates[1] - centroid1.geometry.coordinates[1],
+    ];
+
+// Translate the vertices of the first polygon
+    const shiftedPolygon1Vertices = polygon2Vertices.map((point:any) => [
+      point[0] + translationVector[0]/2,
+      point[1] + translationVector[1]/2,
+    ]);
+
+// Create a Leaflet polygon for the shifted first polygon
+    const shiftedPolygon1 = L.polygon(shiftedPolygon1Vertices, { color: 'red' }).addTo(this.map);
+    const meanCoords:any = [];
+    const coordst1 = turf.explode(polygon1.toGeoJSON()).features.map(feature => feature.geometry.coordinates);
+    const coordst2 = turf.explode(polygon2.toGeoJSON()).features.map(feature => feature.geometry.coordinates);
+    console.log(coordst1)
+    console.log(coordst2)
+    for (let i = 0; i < Math.min(coordst1.length, coordst2.length); i++) {
+      const lat = (coordst1[i][0] + coordst2[i][0]) / 2;
+      const lng = (coordst1[i][1] + coordst2[i][1]) / 2;
+      console.log(i, " lat :", lat, "lng: ", lng)
+      meanCoords.push([lng, lat]);
+    }
+
+// Create a new Leaflet polygon using the mean coordinates
+    const meanPolygon = L.polygon(meanCoords,{color:"black"}).addTo(this.map);
+
 // Add a custom popup content with a table
     const tablePopupContent = `
   <div>
