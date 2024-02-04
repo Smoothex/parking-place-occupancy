@@ -111,6 +111,8 @@ public class ParkingPointService {
                 timestamp.setParkingPoint(savedParkingPoint);
             } else {
                 duplicatePoints++;
+                ParkingPoint existingParkingPoint = parkingPointRepo.getParkingPointById(duplicateId);
+                timestamp.setParkingPoint(existingParkingPoint);
             }
             timestampService.saveTimestamp(timestamp);
         }

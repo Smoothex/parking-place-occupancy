@@ -27,6 +27,8 @@ public interface ParkingPointRepo extends JpaRepository<ParkingPoint, Long> {
 
     List<ParkingPoint> getParkingPointsByEditedParkingSpaceId(long editedParkingSpaceId);
 
+    ParkingPoint getParkingPointById(long id);
+
     @Query(value = GET_DUPLICATE_ID, nativeQuery = true)
     Optional<Long> getIdOfDuplicateByCoordinates(@Param("point") String pointToCompareWith);
 }
