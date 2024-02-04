@@ -83,7 +83,7 @@ public class ParkingPointService {
         for (Map.Entry<ParkingPoint, Timestamp> entry : getParkingPointsAndTimestampsFromFile(geoJsonData).entrySet()) {
             ParkingPoint parkingPoint = entry.getKey();
             Timestamp timestamp = entry.getValue();
-            long duplicateId = isPointUnique(parkingPoint);
+            long duplicateId = getIdOfDuplicateParkingPoint(parkingPoint);
 
             if (duplicateId == -1L) {
                 // Search for a polygon in the 'parking_spaces' table
@@ -123,8 +123,13 @@ public class ParkingPointService {
         }
     }
 
-    private long isPointUnique(ParkingPoint newPoint) {
-        // Use a spatial query to check if at least one duplicate exist
+    /**
+     * Uses a spatial query to check a duplicate exists and get its id.
+     * @param newPoint a ParkingPoint object containing the point which is checked in the database
+     * @return the id of the duplicate, otherwise -1
+     */
+    private long getIdOfDuplicateParkingPoint(ParkingPoint newPoint) {
+        // Use a spatial query to check a duplicate exists
         Optional<Long> duplicateId = parkingPointRepo.getIdOfDuplicateByCoordinates(newPoint.getPoint().toString());
         if (duplicateId.isPresent()) {
             return duplicateId.get();
