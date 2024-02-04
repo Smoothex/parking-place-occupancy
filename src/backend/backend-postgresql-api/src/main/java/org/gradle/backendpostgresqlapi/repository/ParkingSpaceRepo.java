@@ -21,14 +21,20 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     String CREATE_MAIN_DATA_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ps_centroid_idx ON " + TableNameUtil.PARKING_SPACES
         + " USING GIST (ps_centroid)";
+
     String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.PARKING_SPACES +
-        " SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_area = 0.0";
+        " SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) WHERE ps_id = :id";
+
     String FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID = "SELECT COUNT(*) FROM " + TableNameUtil.PARKING_SPACES
         + " WHERE ST_Equals(CAST(ps_centroid AS GEOMETRY), ST_GeomFromText(:centroidToCompareWith, 4326)) LIMIT 1";
 
     String FIND_CLOSEST_PARKING_SPACES_BY_CENTROID = "SELECT * FROM " + TableNameUtil.PARKING_SPACES +
         " WHERE ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) <= 10 " +
         "ORDER BY ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) ASC LIMIT 3";
+
+    String GET_INTERSECTION_AREA_OF_TWO_POLYGONS = "SELECT " +
+        "ST_Area(ST_Intersection(ps_coordinates, ST_GeomFromText(:polygon, 4326))) / ps_area * 100" +
+        " FROM " + TableNameUtil.PARKING_SPACES + " WHERE ps_id=:existing_id";
 
     // todo remove redundant code
     String CHECK_FOR_OVERLAPS = 
@@ -69,25 +75,24 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     @Modifying
     @Query(value = UPDATE_AREA_SQL, nativeQuery = true)
-    void updateAreaColumn();
+    void updateAreaColumn(@Param("id") Long parkingSpaceId);
 
     @Modifying
-    default void insertParkingSpaceFromPolygon(Polygon polygon) {
-        ParkingSpace parkingSpace = new ParkingSpace();
-        parkingSpace.setPolygon(polygon);
-        parkingSpace.setCentroid(polygon.getCentroid());
-        this.save(parkingSpace);
-    }
-
-    @Modifying
-    default void insertParkingSpaceWithCentroid(ParkingSpace parkingSpace) {
+    default ParkingSpace insertParkingSpace(ParkingSpace parkingSpace) {
         parkingSpace.setCentroid(parkingSpace.getPolygon().getCentroid());
-        this.save(parkingSpace);
+        return this.save(parkingSpace);
     }
 
     @Query(value = FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID, nativeQuery = true)
     long findOneDuplicatePolygonByCentroid(@Param("centroidToCompareWith") String centroidToCompareWith);
 
+    @Query(value = GET_INTERSECTION_AREA_OF_TWO_POLYGONS, nativeQuery = true)
+    double findIntersectionAreaOfTwoPolygons(@Param("polygon") String polygon, @Param("existing_id") Long existingPolygonId);
+
+    @Query(value = FIND_CLOSEST_PARKING_SPACES_BY_CENTROID, nativeQuery = true)
+    List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point);
+
+    // todo please remove them
     @Query(value = CHECK_FOR_OVERLAPS, nativeQuery = true)
     List<Object[]> findOverlappingSpacesById(@Param("id") Long id);
 
@@ -99,9 +104,6 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     @Query(value = GET_CENTROID_BY_POLYGON, nativeQuery = true)
     Point getCentroidByPolygon(@Param("polygon") String polygon);
-
-    @Query(value = FIND_CLOSEST_PARKING_SPACES_BY_CENTROID, nativeQuery = true)
-    List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point);
 
     @Query(value = GET_POLYGON_BY_CENTROID, nativeQuery = true)
     String findPolygonByCentroid(@Param("centroid") String centroid);

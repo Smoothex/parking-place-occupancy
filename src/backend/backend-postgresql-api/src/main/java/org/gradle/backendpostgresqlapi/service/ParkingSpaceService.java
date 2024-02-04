@@ -5,13 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
-import org.locationtech.jts.geom.Point;
 
 import java.io.IOException;
 import java.util.List;
@@ -85,20 +83,16 @@ public class ParkingSpaceService {
     private void loadPolygonsFromCsv(String filePath) throws IOException, CsvValidationException {
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
-            processParkingSpace(parkingSpace.getPolygon());
+            processParkingSpace(parkingSpace);
         }
     }
 
     private void loadPolygonsFromGeoJson(String geoJsonData) throws IOException {
         for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            processParkingSpace(polygon);
+            ParkingSpace parkingSpace = new ParkingSpace();
+            parkingSpace.setPolygon(polygon);
+            processParkingSpace(parkingSpace);
         }
-    }
-
-    public void calculateAndUpdateAreaColumn() {
-        log.info("Calculating and updating area column in '{}' table...", PARKING_SPACES);
-        parkingSpaceRepo.updateAreaColumn();
-        log.info("Area column values were calculated and set accordingly for '{}'.", PARKING_SPACES);
     }
 
     private boolean isPolygonUnique(Polygon newPolygon) {
@@ -108,34 +102,37 @@ public class ParkingSpaceService {
         return count == 0; // If count is 0, the polygon is unique
     }
 
-    private void processParkingSpace(Polygon polygon) {
+    private void processParkingSpace(ParkingSpace parkingSpace) {
+        Polygon polygon = parkingSpace.getPolygon();
         if (isPolygonUnique(polygon)) {
+
             // Check if polygon is self-intersecting and if yes, cut the invalid part
             if (!polygon.isValid()) {
                 polygon = (Polygon) polygon.buffer(0);
             }
 
             // get new polygon's centroid
-            Point newPolygonCentroid = polygon.getCentroid();
+            String newPolygonCentroid = polygon.getCentroid().toString();
     
             // get 3 closest parking spaces by their centroids and loop over them
-            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid.toString());
+            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid);
     
             boolean isPolygonOverlapping = false;
             for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
-                Geometry intersectionGeom = neighboringParkingSpace.getPolygon().intersection(polygon);
-                double intersectionArea = intersectionGeom.getArea();
-                log.debug("Intersection area: {}", String.format("%.15f", intersectionArea));
+                double percentageOfOverlappingArea = parkingSpaceRepo
+                    .findIntersectionAreaOfTwoPolygons(polygon.toString(), neighboringParkingSpace.getId());
+                log.debug("Intersection area: {}", String.format("%.2f", percentageOfOverlappingArea));
     
-                if (intersectionArea >= 60) {
-                    overlappingParkingSpaceRepo.insertOverlappingParkingSpaceFromPolygon(polygon);
+                if (percentageOfOverlappingArea >= 50) {
+                    overlappingParkingSpaceRepo.insertParkingSpace(parkingSpace, neighboringParkingSpace);
                     isPolygonOverlapping = true;
                     break;
                 }
             }
     
             if (!isPolygonOverlapping) {
-                parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
+                ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace);
+                parkingSpaceRepo.updateAreaColumn(savedParkingSpace.getId());
             }
         } else {
             log.debug("Parking space not loaded due to a duplication in the '{}' table.", PARKING_SPACES);
