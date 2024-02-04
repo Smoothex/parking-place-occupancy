@@ -18,20 +18,15 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
 
         String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.EDITED_PARKING_SPACES
                         + " SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) WHERE edit_id = :id";
-        // todo move it to parking space repo
+
+        // todo move it to parking space repo and check in the parking_spaces table
         String GET_ID_BY_POINT = "SELECT edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES
                         + " WHERE ST_Contains(cast(edit_coordinates as GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
+
         String GET_NEIGHBORS = "SELECT p2.edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES + " p1 " +
                                 "JOIN " + TableNameUtil.EDITED_PARKING_SPACES + " p2 " +
                                 "ON p1.edit_id = :id AND p1.edit_id <> p2.edit_id " +
                                 "AND ST_Touches(CAST(p1.edit_coordinates AS GEOMETRY), CAST(p2.edit_coordinates AS GEOMETRY))";
-
-        // GET POINTS ON THE EDGE OF THE POLYGON
-        // SELECT edit_id, edit_area, edit_capacity, edit_occupied, edit_ps_id,
-        // ST_AsText(edit_coordinates) AS wkt_coordinates
-        // FROM public.edited_parking_spaces
-        // WHERE ST_Intersects(ST_ExteriorRing(edit_coordinates::geometry),
-        // ST_GeomFromText('POINT(13.360991062697591 52.545194996101614)', 4326));
 
         @Modifying
         @Query(value = UPDATE_AREA_SQL, nativeQuery = true)

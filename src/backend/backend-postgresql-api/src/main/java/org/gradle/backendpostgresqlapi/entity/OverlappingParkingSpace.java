@@ -23,9 +23,6 @@ public class OverlappingParkingSpace {
     @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ops_coordinates", nullable = false, updatable = false)
     private Polygon polygon;
 
-    @Column(name = "ops_area")
-    private double area;
-
     @Column(name = "ops_capacity")
     private Integer capacity;
 
@@ -39,12 +36,12 @@ public class OverlappingParkingSpace {
 
     @Override
     public String toString() {
-        return "ParkingSpace{" +
+        return "OverlappingParkingSpace{" +
                     "id=" + id +
                     ", coordinates=" + coordinatesToString(polygon) +
-                    ", area=" + area +
                     ", capacity=" + capacity +
-                    ", position=" + (position != null ? position.getDisplayName() : "null") + "}";
+                    ", position=" + (position != null ? position.getDisplayName() : "null") +
+                    ", parkingSpaceId=" + assignedParkingSpace.getId() + "}";
     }
 
     private String coordinatesToString(Polygon polygon) {
