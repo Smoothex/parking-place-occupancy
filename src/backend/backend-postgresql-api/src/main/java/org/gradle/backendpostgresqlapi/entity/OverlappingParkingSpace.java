@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 @Entity
 @Table(name = "overlapping_parking_spaces", schema = "public")
 public class OverlappingParkingSpace {
-        @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ops_id", nullable = false)
     private Long id;

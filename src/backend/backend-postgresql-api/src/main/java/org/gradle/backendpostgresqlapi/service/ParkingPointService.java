@@ -2,11 +2,13 @@ package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
+import org.gradle.backendpostgresqlapi.entity.OverlappingParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
+import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
-import org.locationtech.jts.io.WKTWriter;
+import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
@@ -24,14 +26,19 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_POINTS;
 @Service
 public class ParkingPointService {
 
+    private final ParkingSpaceRepo parkingSpaceRepo;
+    private final OverlappingParkingSpaceRepo overlappingParkingSpaceRepo;
     private final EditedParkingSpaceRepo editedParkingSpaceRepo;
     private final ParkingPointRepo parkingPointRepo;
     private final TimestampService timestampService;
     private final ResourceLoader resourceLoader;
 
     @Autowired
-    public ParkingPointService(EditedParkingSpaceRepo editedParkingSpaceRepo, ParkingPointRepo parkingPointRepo,
+    public ParkingPointService(ParkingSpaceRepo parkingSpaceRepo, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo,
+        EditedParkingSpaceRepo editedParkingSpaceRepo, ParkingPointRepo parkingPointRepo,
         TimestampService timestampService, ResourceLoader resourceLoader) {
+        this.parkingSpaceRepo = parkingSpaceRepo;
+        this.overlappingParkingSpaceRepo = overlappingParkingSpaceRepo;
         this.editedParkingSpaceRepo = editedParkingSpaceRepo;
         this.parkingPointRepo = parkingPointRepo;
         this.timestampService = timestampService;
@@ -79,19 +86,27 @@ public class ParkingPointService {
             long duplicateId = isPointUnique(parkingPoint);
 
             if (duplicateId == -1L) {
+                // Search for a polygon in the 'parking_spaces' table
+                Optional<Long> parkingSpaceId = parkingSpaceRepo.getParkingSpaceIdByPointWithin(parkingPoint.getPoint().toString());
 
-                // Convert the new polygon to WKT (Well-Known Text)
-                String pointWKT = new WKTWriter().write(parkingPoint.getPoint());
-                Optional<Long> editedParkingSpaceId = editedParkingSpaceRepo.getIdByPointWithin(pointWKT);
-                if (editedParkingSpaceId.isPresent()) {
-                    EditedParkingSpace editedParkingSpace = editedParkingSpaceRepo.findById(editedParkingSpaceId.get()).orElse(null);
-                    log.debug("Edited parking space with id '{}' found.", editedParkingSpaceId.get());
-                    parkingPoint.setEditedParkingSpace(editedParkingSpace);
+                EditedParkingSpace editedParkingSpace = null;
+                if (parkingSpaceId.isPresent()) {
+                    editedParkingSpace = editedParkingSpaceRepo.getEditedParkingSpaceByParkingSpaceId(parkingSpaceId.get());
+                    log.debug("Edited parking space with id '{}' found.", editedParkingSpace.getId());
                 } else {
-                    log.debug("No edited parking space found for point '{}'.", pointWKT);
-                    parkingPoint.setEditedParkingSpace(null);
+                    // Search for a polygon in the 'overlapping_parking_places' table
+                    Optional<OverlappingParkingSpace> overlappingParkingSpace = overlappingParkingSpaceRepo
+                        .getOverlappingParkingSpaceByPointWithin(parkingPoint.getPoint().toString());
+
+                    if (overlappingParkingSpace.isPresent()) {
+                        editedParkingSpace = editedParkingSpaceRepo
+                            .getEditedParkingSpaceByParkingSpaceId(overlappingParkingSpace.get().getAssignedParkingSpace().getId());
+                    } else {
+                        log.debug("No edited parking space found for point '{}'.", parkingPoint.getPoint().toString());
+                    }
                 }
 
+                parkingPoint.setEditedParkingSpace(editedParkingSpace);
                 ParkingPoint savedParkingPoint = parkingPointRepo.save(parkingPoint);
                 timestamp.setParkingPoint(savedParkingPoint);
             } else {
@@ -107,11 +122,8 @@ public class ParkingPointService {
     }
 
     private long isPointUnique(ParkingPoint newPoint) {
-        // Convert the new point to WKT (Well-Known Text)
-        String newPointWKT = new WKTWriter().write(newPoint.getPoint());
-
         // Use a spatial query to check if at least one duplicate exist
-        Optional<Long> duplicateId = parkingPointRepo.getIdOfDuplicateByCoordinates(newPointWKT);
+        Optional<Long> duplicateId = parkingPointRepo.getIdOfDuplicateByCoordinates(newPoint.getPoint().toString());
         if (duplicateId.isPresent()) {
             return duplicateId.get();
         }

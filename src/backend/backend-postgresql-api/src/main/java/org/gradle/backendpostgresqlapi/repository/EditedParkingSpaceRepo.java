@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 @Transactional
@@ -18,10 +17,6 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
 
         String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.EDITED_PARKING_SPACES
                         + " SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) WHERE edit_id = :id";
-
-        // todo move it to parking space repo and check in the parking_spaces table
-        String GET_ID_BY_POINT = "SELECT edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES
-                        + " WHERE ST_Contains(cast(edit_coordinates as GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
 
         String GET_NEIGHBORS = "SELECT p2.edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES + " p1 " +
                                 "JOIN " + TableNameUtil.EDITED_PARKING_SPACES + " p2 " +
@@ -36,8 +31,7 @@ public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace
 
         boolean existsByParkingSpaceId(long id);
 
-        @Query(value = GET_ID_BY_POINT, nativeQuery = true)
-        Optional<Long> getIdByPointWithin(@Param("pointWithin") String pointWithin);
+        EditedParkingSpace getEditedParkingSpaceByParkingSpaceId(long id);
 
         @Query(value = GET_NEIGHBORS, nativeQuery = true)
         List<Long> findNeighborIds(@Param("id") Long id);

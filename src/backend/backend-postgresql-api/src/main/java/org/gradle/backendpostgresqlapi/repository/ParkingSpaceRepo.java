@@ -36,6 +36,11 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
         "ST_Area(ST_Intersection(ps_coordinates, ST_GeomFromText(:polygon, 4326))) / ps_area * 100" +
         " FROM " + TableNameUtil.PARKING_SPACES + " WHERE ps_id=:existing_id";
 
+    String CALCULATE_CENTROID_FOR_POLYGON = "SELECT ST_AsGeoJSON(ST_Centroid(ST_GeomFromText(:polygon, 4326)))";
+
+    String GET_PARKING_SPACE_ID_BY_POINT_WITHIN = "SELECT ps_id FROM " + TableNameUtil.PARKING_SPACES
+        + " WHERE ST_Contains(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
+
     // todo remove redundant code
     String CHECK_FOR_OVERLAPS = 
         "SELECT  edit_id, " +
@@ -78,10 +83,13 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     void updateAreaColumn(@Param("id") Long parkingSpaceId);
 
     @Modifying
-    default ParkingSpace insertParkingSpace(ParkingSpace parkingSpace) {
-        parkingSpace.setCentroid(parkingSpace.getPolygon().getCentroid());
+    default ParkingSpace insertParkingSpace(ParkingSpace parkingSpace, Point centroid) {
+        parkingSpace.setCentroid(centroid);
         return this.save(parkingSpace);
     }
+
+    @Query(value = CALCULATE_CENTROID_FOR_POLYGON, nativeQuery = true)
+    String calculateCentroidForPolygon(@Param("polygon") String polygon);
 
     @Query(value = FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID, nativeQuery = true)
     long findOneDuplicatePolygonByCentroid(@Param("centroidToCompareWith") String centroidToCompareWith);
@@ -91,6 +99,9 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     @Query(value = FIND_CLOSEST_PARKING_SPACES_BY_CENTROID, nativeQuery = true)
     List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point);
+
+    @Query(value = GET_PARKING_SPACE_ID_BY_POINT_WITHIN, nativeQuery = true)
+    Optional<Long> getParkingSpaceIdByPointWithin(@Param("pointWithin") String pointWithin);
 
     // todo please remove them
     @Query(value = CHECK_FOR_OVERLAPS, nativeQuery = true)

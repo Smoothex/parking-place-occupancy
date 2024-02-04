@@ -1,10 +1,12 @@
 package org.gradle.backendpostgresqlapi.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
 
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
@@ -15,8 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 
 @Slf4j
@@ -96,13 +97,11 @@ public class ParkingSpaceService {
     }
 
     private boolean isPolygonUnique(Polygon newPolygon) {
-        // Use a spatial query to check if a duplicate exists
-        long count = parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString());
-
-        return count == 0; // If count is 0, the polygon is unique
+        // Use a spatial query to check if a duplicate exists. If count is 0, the polygon is unique
+        return parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString()) == 0;
     }
 
-    private void processParkingSpace(ParkingSpace parkingSpace) {
+    private void processParkingSpace(ParkingSpace parkingSpace) throws JsonProcessingException {
         Polygon polygon = parkingSpace.getPolygon();
         if (isPolygonUnique(polygon)) {
 
@@ -111,27 +110,29 @@ public class ParkingSpaceService {
                 polygon = (Polygon) polygon.buffer(0);
             }
 
-            // get new polygon's centroid
-            String newPolygonCentroid = polygon.getCentroid().toString();
-    
-            // get 3 closest parking spaces by their centroids and loop over them
-            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo.findClosestParkingSpacesByCentroid(newPolygonCentroid);
-    
+            // Get new polygon's centroid as GeoJson and convert it to a point
+            String newPolygonCentroidAsGeoJson = parkingSpaceRepo.calculateCentroidForPolygon(polygon.toString());
+            Point newCentroid = convertGeoJsonToPoint(newPolygonCentroidAsGeoJson);
+
+            // Get 3 closest parking spaces by their centroids and loop over them
+            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo
+                .findClosestParkingSpacesByCentroid(newCentroid.toString());
+
             boolean isPolygonOverlapping = false;
             for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
                 double percentageOfOverlappingArea = parkingSpaceRepo
                     .findIntersectionAreaOfTwoPolygons(polygon.toString(), neighboringParkingSpace.getId());
                 log.debug("Intersection area: {}", String.format("%.2f", percentageOfOverlappingArea));
-    
+
                 if (percentageOfOverlappingArea >= 50) {
                     overlappingParkingSpaceRepo.insertParkingSpace(parkingSpace, neighboringParkingSpace);
                     isPolygonOverlapping = true;
                     break;
                 }
             }
-    
+
             if (!isPolygonOverlapping) {
-                ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace);
+                ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace, newCentroid);
                 parkingSpaceRepo.updateAreaColumn(savedParkingSpace.getId());
             }
         } else {

@@ -8,6 +8,7 @@ import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -139,5 +140,15 @@ public class JsonHandler {
         timestamp.setTimestamp(formatMillisecondsDateToString(milliseconds));
 
         return timestamp;
+    }
+
+    public static Point convertGeoJsonToPoint(String pointGeoJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(pointGeoJson);
+        JsonNode coordinatesNode = rootNode.path("coordinates");
+
+        Coordinate coordinate = new Coordinate(coordinatesNode.get(0).asDouble(), coordinatesNode.get(1).asDouble());
+
+		return geometryFactory.createPoint(coordinate);
     }
 }
