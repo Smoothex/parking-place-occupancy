@@ -2,9 +2,8 @@ package org.gradle.backendpostgresqlapi.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
-import org.gradle.backendpostgresqlapi.dto.ParkingPointDto;
-import org.gradle.backendpostgresqlapi.dto.TimestampDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
 import org.gradle.backendpostgresqlapi.service.TimestampService;
@@ -12,9 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.text.ParseException;
+import java.util.*;
 
+import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.formatDateToString;
+import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.parseStringToDate;
 import static org.gradle.backendpostgresqlapi.util.DtoConverterUtil.convertToDto;
 
 @RestController
@@ -109,20 +110,37 @@ public class EditedParkingSpaceController {
         }
     }
 
-    // http://localhost:8080/api/parking-spaces/1/parking_points
-    @GetMapping("/{edited_space_id}/parking_points")
-    public ResponseEntity<List<ParkingPointDto>> getAllParkingPointsByEditedParkingSpaceId(@PathVariable long edited_space_id) {
-        List<ParkingPointDto> parkingPointDtos = parkingPointService.getAllParkingPointsByEditedParkingSpaceIdAsDto(edited_space_id);
-        if (parkingPointDtos.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(parkingPointDtos);
+    // http://localhost:8080/api/parking-spaces/1/neighbors
+    @GetMapping("/{id}/neighbors")
+    public ResponseEntity<List<Long>> getNeighborIds(@PathVariable Long id) {
+        List<Long> neighborIds = editedParkingSpaceService.getNeighbors(id);
+        return ResponseEntity.ok(neighborIds);
     }
 
-    // http://localhost:8080/api/parking-spaces/1/timestamps
-    @GetMapping("/{parking_point_id}/timestamps")
-    public ResponseEntity<List<TimestampDto>> getAllTimestampsByParkingPointId(@PathVariable long parking_point_id) {
-        List<TimestampDto> timestampDtos = timestampService.getAllTimestampsByParkingPointIdAsDto(parking_point_id);
-        return ResponseEntity.ok(timestampDtos);
+    // http://localhost:8080/api/parking-spaces/1/history
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<String>> getAllTimestampsByEditedParkingSpaceId(@PathVariable long id) {
+
+        List<String> timestampsAsStrings = new ArrayList<>();
+        List<Date> timestampsAsDates = new ArrayList<>();
+
+        try {
+            for (ParkingPoint parkingPoint : parkingPointService.getAllParkingPointsByEditedParkingSpaceId(id)) {
+                timestampsAsStrings.addAll(timestampService.getAllTimestampsByParkingPointId(parkingPoint.getId()));
+            }
+
+            for (String timestampStr : timestampsAsStrings) {
+                timestampsAsDates.add(parseStringToDate(timestampStr));
+            }
+        } catch(ParseException exception) {
+            return ResponseEntity.internalServerError().build();
+        }
+
+        // Sort dates, format them back to strings and remove duplicates
+        Collections.sort(timestampsAsDates);
+        timestampsAsStrings.clear();
+        timestampsAsDates.forEach(t -> timestampsAsStrings.add(formatDateToString(t)));
+
+        return ResponseEntity.ok( new ArrayList<>(new LinkedHashSet<>(timestampsAsStrings)));
     }
 }

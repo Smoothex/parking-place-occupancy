@@ -66,11 +66,11 @@ public class CsvHandler {
             log.error("Error reading CSV file at path: {}", filePath, e);
             throw e;
         }
-        log.info("Successfully loaded {} parking spaces from CSV file.", parkingSpaces.size());
+        log.info("Successfully read {} parking spaces from CSV file.", parkingSpaces.size());
         return parkingSpaces;
     }
 
-    private static Geometry parseWktToGeometry(String wktString) throws IOException {
+    public static Geometry parseWktToGeometry(String wktString) throws IOException {
         try {
             return wktReader.read(wktString);
         } catch (ParseException e) {

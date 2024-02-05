@@ -17,8 +17,9 @@ public class ParkingPoint {
     @Column(name = "pp_id", nullable = false)
     private Long id;
 
-    @Column(name = "pp_edit_id", nullable = false, updatable = false)
-    private Long editedParkingSpaceId;
+    @ManyToOne
+    @JoinColumn(name = "edited_parking_space_id")
+    private EditedParkingSpace editedParkingSpace;
 
     @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "pp_coordinates", nullable = false, updatable = false)
     private org.locationtech.jts.geom.Point point;
@@ -30,7 +31,7 @@ public class ParkingPoint {
     public String toString() {
         return "TimestampPoint{" +
                     "id=" + id +
-                    ", editedParkingSpaceId=" + editedParkingSpaceId +
+                    ", editedParkingSpaceId=" + editedParkingSpace.getId() +
                     ", coordinates=" + coordinatesToString(point) + "}";
     }
 

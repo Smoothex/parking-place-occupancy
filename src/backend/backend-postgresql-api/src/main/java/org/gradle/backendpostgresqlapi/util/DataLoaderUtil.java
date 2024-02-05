@@ -36,9 +36,6 @@ public class DataLoaderUtil {
 			}
 		}
 
-		// Calculate the area of the inserted park spaces
-		parkingSpaceService.calculateAndUpdateAreaColumn();
-
 		// Copy data to edited_parking_spaces database
 		editedParkingSpaceService.copyDataIntoDatabase();
 	}

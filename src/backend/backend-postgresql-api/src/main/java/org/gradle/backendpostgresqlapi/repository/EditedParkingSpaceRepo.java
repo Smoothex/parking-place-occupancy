@@ -10,25 +10,33 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 @Transactional
 public interface EditedParkingSpaceRepo extends JpaRepository<EditedParkingSpace, Long> {
 
-    String UPDATE_AREA_SQL = "UPDATE " + TableNameUtil.EDITED_PARKING_SPACES
-        + " SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) WHERE edit_id = :id";
-    String GET_ID_BY_POINT = "SELECT edit_id FROM " + TableNameUtil.EDITED_PARKING_SPACES
-        + " WHERE ST_Contains(cast(edit_coordinates as geometry), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
+        String UPDATE_AREA_SQL = 
+        "UPDATE " + TableNameUtil.EDITED_PARKING_SPACES + 
+        " SET edit_area = ROUND(CAST(ST_AREA(edit_coordinates) AS NUMERIC),2) " + 
+        "WHERE edit_id = :id";
 
-    @Modifying
-    @Query(value = UPDATE_AREA_SQL, nativeQuery = true)
-    void updateAreaColumnById(@Param("id") long id);
+        String GET_NEIGHBORS = 
+        "SELECT p2.edit_id " + 
+        "FROM " + TableNameUtil.EDITED_PARKING_SPACES + " p1 " +                       
+        "JOIN " + TableNameUtil.EDITED_PARKING_SPACES + " p2 " +
+        "ON p1.edit_id = :id AND p1.edit_id <> p2.edit_id " +
+        "AND ST_Touches(CAST(p1.edit_coordinates AS GEOMETRY), CAST(p2.edit_coordinates AS GEOMETRY))";
 
-    List<EditedParkingSpace> findByOccupied(boolean occupied);
+        @Modifying
+        @Query(value = UPDATE_AREA_SQL, nativeQuery = true)
+        void updateAreaColumnById(@Param("id") long id);
 
-    boolean existsByParkingSpaceId(long id);
+        List<EditedParkingSpace> findByOccupied(boolean occupied);
 
-    @Query(value = GET_ID_BY_POINT, nativeQuery = true)
-    Optional<Long> getIdByPointWithin(@Param("pointWithin") String pointWithin);
+        boolean existsByParkingSpaceId(long id);
+
+        EditedParkingSpace getEditedParkingSpaceByParkingSpaceId(long id);
+
+        @Query(value = GET_NEIGHBORS, nativeQuery = true)
+        List<Long> findNeighborIds(@Param("id") Long id);
 }

@@ -1,57 +1,47 @@
 package org.gradle.backendpostgresqlapi.entity;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
-import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.Locale;
-import java.util.Set;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "parking_spaces", schema = "public")
-public class ParkingSpace {
-
+@Table(name = "overlapping_parking_spaces", schema = "public")
+public class OverlappingParkingSpace {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ps_id", nullable = false)
+    @Column(name = "ops_id", nullable = false)
     private Long id;
 
-    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ps_coordinates", nullable = false, updatable = false)
+    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ops_coordinates", nullable = false, updatable = false)
     private Polygon polygon;
 
-    @Column(name = "ps_area")
-    private double area;
-
-    @Column(name = "ps_capacity")
+    @Column(name = "ops_capacity")
     private Integer capacity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ps_position")
+    @Column(name = "ops_position")
     private ParkingPosition position;
 
-    @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "ps_centroid", nullable = false, updatable = false)
-    private Point centroid;
-
-    @OneToMany(mappedBy = "assignedParkingSpace")
-    private Set<OverlappingParkingSpace> overlappingParkingSpaces;
-
-    // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
-    public ParkingSpace() {}
+    @ManyToOne
+    @JoinColumn(name = "assigned_parking_space_id", nullable = false)
+    private ParkingSpace assignedParkingSpace;
 
     @Override
     public String toString() {
-        return "ParkingSpace{" +
+        return "OverlappingParkingSpace{" +
                     "id=" + id +
                     ", coordinates=" + coordinatesToString(polygon) +
-                    ", area=" + area +
                     ", capacity=" + capacity +
-                    ", position=" + (position != null ? position.getDisplayName() : "null") + "}";
+                    ", position=" + (position != null ? position.getDisplayName() : "null") +
+                    ", parkingSpaceId=" + assignedParkingSpace.getId() + "}";
     }
 
     private String coordinatesToString(Polygon polygon) {

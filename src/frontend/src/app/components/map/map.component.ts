@@ -185,7 +185,7 @@ export class MapComponent {
                 return areaData;
               },
               (error) => {
-                console.error('error getParkingSpaceAreawihID' + error);
+                console.error('error getParkingSpaceAreawithID' + error);
               }
             )
             .then((area) => {
@@ -194,6 +194,7 @@ export class MapComponent {
                 obj.y,
                 obj.x,
               ]);
+
               // console.log(arrayOfArrays);
               parseElement.coordinates = arrayOfArrays;
               const simple = this.simplifyGeoPolygon(arrayOfArrays);
@@ -203,28 +204,50 @@ export class MapComponent {
                     <h3 style="margin-bottom: 10px;">ID: ${parseElement.id}</h3>
                       <p style="margin: 0 0 10px;">Occupied: ${parseElement.occupied? "Yes": "No"}</p>
                       <p style="margin: 0 0 10px;">Area: ${area} m&sup2;</p>
-                      <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity}</p>
+                      <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity === -1 ? 'N/A' : parseElement.capacity}</p>
+                      <p style="margin: 0 0 10px;">Orientation: ${parseElement.position === null ?  'N/A' : parseElement.position}</p>
                       <div style="text-align: center; margin-top: 10px; font-style: italic; color: #666;">
                                 To edit, drag the markers on the border, and click outside the parking place to save it
                       </div>
                   </div>
                 `
+                  //! should be removed after the demo !!! as not a good implementation of the code
+              this.restApi.getTimestampDataHistory(parseElement.id).then((data:any)=>{
+                let polygonColor: string = 'green';
+                if(data.length != 0 ){
+                  console.log("history",data, data[data.length-1])
+                  const occupancyDemo: boolean = this.checkOccupancy(data[data.length-1])
 
+                  if(occupancyDemo){
+                    polygonColor = 'red';
+
+                  }else{
+
+                    polygonColor = 'green';
+                  }
+
+                }else{
+
+                  // it stays green
+
+                }
+
+
+                // if (parseElement.occupied) {
+                // }
+                polygon.setStyle({
+                  fillColor: polygonColor,
+                  color: polygonColor,
+                  opacity: 1,
+                  weight: 3,
+                });
+              })
 
               let polygon = L.polygon(simple)
                 .addTo(this.map)
                 .bindPopup(defaultPopup
                );
-              let polygonColor: string = 'green';
-              if (parseElement.occupied) {
-                polygonColor = 'red';
-              }
-              polygon.setStyle({
-                fillColor: polygonColor,
-                color: polygonColor,
-                opacity: 1,
-                weight: 3,
-              });
+
               polygon.on({
                 mouseover: (event: any) => {
                   this.highlightFeature(event);
@@ -238,13 +261,14 @@ export class MapComponent {
                 // console.log("before ", this.activePolygonInteractionLayer.toString())
                 // TODO: add timestamp data
                 const polygonCenter = polygon.getCenter()
-                const bounds = polygon.getBounds();
-                this.map.fitBounds(bounds)
-                this.restApi.getTimestampData(parseElement.id).then((data:any)=>{
+                this.map.setView(polygonCenter);
+                // const bounds = polygon.getBounds();
+                // this.map.fitBounds(bounds)
+                this.restApi.getTimestampDataHistory(parseElement.id).then((data:any)=>{
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
                       <div style="font-family: 'Arial', sans-serif; color: #333; padding: 15px;">
-                       <h3 style="margin-bottom: 10px;">Park Place Occupied during</h3>
+                       <h3 style="margin-bottom: 10px;">Parking space occupied at</h3>
                         <table style="width: 100%; border-collapse: collapse;">
                           <thead style="background-color: #f2f2f2;">
                             <tr>
@@ -467,16 +491,16 @@ export class MapComponent {
       return '<tr><td>No data available</td></tr>'
     }
     return timestampData.map(item => {
-      const isOccupied = this.checkOccupancy(item.timestamp);
-      const [datePart, timePart] = item.timestamp.split(' ');
+      const isOccupied = this.checkOccupancy(item);
+      const [datePart, timePart] = item.split(' ');
       return `<tr><td>${datePart}</td><td>${timePart}</td></tr>`;
     }).join('');
   }
   checkOccupancy(timestamp: string): boolean {
     // Implement your logic to check if the parking place is occupied based on the timestamp
     // For example, you can compare the timestamp with the current time
-    const currentTimestamp = new Date();
-    const parkingTimestamp = new Date(timestamp);
-    return parkingTimestamp <= currentTimestamp;
+    const currentTimestamp = new Date().setMonth(12);
+    const parkingTimestamp:any = new Date(timestamp.replace(/(\d{2}).(\d{2}).(\d{4}) (\d{2}:\d{2}:\d{2})/, '$3-$2-$1T$4'));
+    return 9 <= parkingTimestamp.getMonth();
   }
 }

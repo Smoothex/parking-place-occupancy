@@ -1,13 +1,14 @@
 package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.gradle.backendpostgresqlapi.dto.TimestampDto;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.TimestampRepo;
-import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.TIMESTAMPS;
@@ -33,13 +34,17 @@ public class TimestampService {
     }
 
     public void saveTimestamp(Timestamp timestamp) {
-        if (timestampRepo.getMaxOneDuplicate(timestamp.getParkingPointId(), timestamp.getTimestamp()) == 0) {
+        ParkingPoint parkingPoint = timestamp.getParkingPoint();
+        if (parkingPoint != null && timestampRepo.getMaxOneDuplicate(parkingPoint.getId(), timestamp.getTimestamp()) == 0) {
             timestampRepo.save(timestamp);
         }
     }
 
-    public List<TimestampDto> getAllTimestampsByParkingPointIdAsDto(long parkingPointId) {
-        return timestampRepo.getAllByParkingPointId(parkingPointId)
-            .stream().map(DtoConverterUtil::convertToDto).toList();
+    public List<String> getAllTimestampsByParkingPointId(long parkingPointId) throws ParseException {
+        List<String> timestamps = new ArrayList<>();
+        for (Timestamp timestamp : timestampRepo.getAllTimestampsByParkingPointId(parkingPointId)) {
+            timestamps.add(timestamp.getTimestamp());
+        }
+        return timestamps;
     }
 }

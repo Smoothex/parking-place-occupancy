@@ -3,20 +3,21 @@ package org.gradle.backendpostgresqlapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
+
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.io.WKTWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
+import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
 
 import java.io.IOException;
 import java.util.List;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.getJsonDataFromFile;
-import static org.gradle.backendpostgresqlapi.util.JsonHandler.getPolygonsFromGeoJson;
+import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 
 @Slf4j
@@ -25,17 +26,19 @@ public class ParkingSpaceService {
 
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
+    private final OverlappingParkingSpaceRepo overlappingParkingSpaceRepo;
 
     @Autowired
-    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo) {
+    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo) {
         this.resourceLoader = resourceLoader;
         this.parkingSpaceRepo = parkingSpaceRepo;
+        this.overlappingParkingSpaceRepo = overlappingParkingSpaceRepo;
     }
 
     /**
      * Creates a spatial index if it does not already exist.
      */
-    public void initializeDatabaseIndex() {
+    public void initializeDbIndex() {
         log.debug("Initializing index for table '{}' ...", PARKING_SPACES);
         parkingSpaceRepo.createMainDataIndex();
         log.info("Index for table '{}' created.", PARKING_SPACES);
@@ -57,8 +60,14 @@ public class ParkingSpaceService {
 
         if (geoJsonData.contains("Polygon")) {
             log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
-            loadPolygons(geoJsonData);
-            log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
+
+            for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
+                ParkingSpace parkingSpace = new ParkingSpace();
+                parkingSpace.setPolygon(polygon);
+                processParkingSpace(parkingSpace);
+            }
+
+            log.info("Successfully loaded file '{}' in '{}' table.", filePath, PARKING_SPACES);
         } else {
             log.warn("File '{}' does not contain parking spaces data.",filePath);
         }
@@ -74,45 +83,56 @@ public class ParkingSpaceService {
      */
     public void loadCsv(String filePath) throws IOException, CsvValidationException {
         log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
+
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
-            if (isPolygonUnique(parkingSpace.getPolygon())) {
-                parkingSpaceRepo.save(parkingSpace);
-            } else {
-                log.warn("Parking space from CSV file not loaded and skipped! A parking space with the same polygon already exists in the '{}' table.",
-                    PARKING_SPACES);
-            }
-        }
-        log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
-    }
-
-    private void loadPolygons(String geoJsonData) throws JsonProcessingException {
-        int duplicatePolygons = 0;
-        for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            if (isPolygonUnique(polygon))
-                parkingSpaceRepo.insertParkingSpaceFromPolygon(polygon);
-            else
-                duplicatePolygons++;
+            processParkingSpace(parkingSpace);
         }
 
-        if (duplicatePolygons > 0)
-            log.warn("{} parkings space from GeoJSON file were not loaded and skipped due to a duplication in the '{}' table.",
-                duplicatePolygons, PARKING_SPACES);
-    }
-
-    public void calculateAndUpdateAreaColumn() {
-        log.info("Calculating and updating area column in '{}' table...", PARKING_SPACES);
-        parkingSpaceRepo.updateAreaColumn();
-        log.info("Area column values were calculated and set accordingly for '{}'.", PARKING_SPACES);
+        log.info("Successfully loaded file '{}' in '{}' table.", filePath, PARKING_SPACES);
     }
 
     private boolean isPolygonUnique(Polygon newPolygon) {
-        // Convert the new polygon to WKT (Well-Known Text)
-        String newPolygonWKT = new WKTWriter().write(newPolygon);
+        // Use a spatial query to check if a duplicate exists. If count is 0, the polygon is unique
+        return parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString()) == 0;
+    }
 
-        // Use a spatial query to check if at least one duplicate exist
-        long count = parkingSpaceRepo.countSamePolygons(newPolygonWKT);
+    private void processParkingSpace(ParkingSpace parkingSpace) throws JsonProcessingException {
+        Polygon polygon = parkingSpace.getPolygon();
+        if (isPolygonUnique(polygon)) {
 
-        return count == 0; // If count is 0, the polygon is unique
+            // Check if polygon is self-intersecting and if yes, cut the invalid part
+            if (!polygon.isValid()) {
+                polygon = (Polygon) polygon.buffer(0);
+            }
+
+            // Get new polygon's centroid as GeoJson and convert it to a point
+            String newPolygonCentroidAsGeoJson = parkingSpaceRepo.calculateCentroidForPolygon(polygon.toString());
+            Point newCentroid = convertGeoJsonToPoint(newPolygonCentroidAsGeoJson);
+
+            // Get 3 closest parking spaces by their centroids and loop over them
+            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo
+                .findClosestParkingSpacesByCentroid(newCentroid.toString());
+
+            boolean isPolygonOverlapping = false;
+            for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
+                double percentageOfOverlappingArea = parkingSpaceRepo
+                    .findIntersectionAreaOfTwoPolygons(polygon.toString(), neighboringParkingSpace.getId());
+                log.debug("Intersection area: {}", String.format("%.2f", percentageOfOverlappingArea));
+
+                if (percentageOfOverlappingArea >= 50) {
+                    overlappingParkingSpaceRepo.insertParkingSpace(parkingSpace, neighboringParkingSpace);
+                    isPolygonOverlapping = true;
+                    break;
+                }
+            }
+
+            if (!isPolygonOverlapping) {
+                ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace, newCentroid);
+                parkingSpaceRepo.updateAreaColumn(savedParkingSpace.getId());
+            }
+        } else {
+            log.debug("Parking space not loaded due to a duplication in the '{}' table.", PARKING_SPACES);
+        }
     }
 }

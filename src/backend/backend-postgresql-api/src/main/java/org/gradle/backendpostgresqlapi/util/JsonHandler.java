@@ -8,19 +8,19 @@ import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
+
+import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.formatMillisecondsDateToString;
 
 @Slf4j
 public class JsonHandler {
@@ -137,9 +137,18 @@ public class JsonHandler {
         Timestamp timestamp = new Timestamp();
 
         long milliseconds = Long.parseLong(timestampNode.asText());
-        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.GERMANY);
-        timestamp.setTimestamp(dateFormat.format(milliseconds));
+        timestamp.setTimestamp(formatMillisecondsDateToString(milliseconds));
 
         return timestamp;
+    }
+
+    public static Point convertGeoJsonToPoint(String pointGeoJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(pointGeoJson);
+        JsonNode coordinatesNode = rootNode.path("coordinates");
+
+        Coordinate coordinate = new Coordinate(coordinatesNode.get(0).asDouble(), coordinatesNode.get(1).asDouble());
+
+		return geometryFactory.createPoint(coordinate);
     }
 }
