@@ -15,10 +15,13 @@ import java.util.List;
 @Transactional
 public interface TimestampRepo extends JpaRepository<Timestamp, Long> {
 
-    String CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS t_timestamp_idx ON " + TableNameUtil.TIMESTAMPS
-        + " (t_timestamp)";
-    String GET_MAX_ONE_DUPLICATE = "SELECT COUNT(*) FROM " + TableNameUtil.TIMESTAMPS
-        + " WHERE parking_point_id = :id AND t_timestamp = :timestamp LIMIT 1";
+    String CREATE_INDEX_SQL = 
+    "CREATE INDEX IF NOT EXISTS t_timestamp_idx ON " + TableNameUtil.TIMESTAMPS + 
+    " (t_timestamp)";
+    String GET_MAX_ONE_DUPLICATE = 
+    "SELECT COUNT(*) " + 
+    "FROM " + TableNameUtil.TIMESTAMPS + 
+    " WHERE parking_point_id = :id AND t_timestamp = :timestamp LIMIT 1";
 
     @Modifying
     @Query(value = CREATE_INDEX_SQL, nativeQuery = true)

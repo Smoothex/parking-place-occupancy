@@ -60,8 +60,14 @@ public class ParkingSpaceService {
 
         if (geoJsonData.contains("Polygon")) {
             log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
-            loadPolygonsFromGeoJson(geoJsonData);
-            log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
+
+            for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
+                ParkingSpace parkingSpace = new ParkingSpace();
+                parkingSpace.setPolygon(polygon);
+                processParkingSpace(parkingSpace);
+            }
+
+            log.info("Successfully loaded file '{}' in '{}' table.", filePath, PARKING_SPACES);
         } else {
             log.warn("File '{}' does not contain parking spaces data.",filePath);
         }
@@ -77,23 +83,13 @@ public class ParkingSpaceService {
      */
     public void loadCsv(String filePath) throws IOException, CsvValidationException {
         log.info("Loading file '{}' into '{}' table...", filePath, PARKING_SPACES);
-        loadPolygonsFromCsv(filePath);
-        log.info("Successfully loaded file '{}' in '{}'.", filePath, PARKING_SPACES);
-    }
 
-    private void loadPolygonsFromCsv(String filePath) throws IOException, CsvValidationException {
         List<ParkingSpace> csvParkingSpaces = getCsvDataFromFile(resourceLoader, filePath);
         for (ParkingSpace parkingSpace : csvParkingSpaces) {
             processParkingSpace(parkingSpace);
         }
-    }
 
-    private void loadPolygonsFromGeoJson(String geoJsonData) throws IOException {
-        for (Polygon polygon : getPolygonsFromGeoJson(geoJsonData)) {
-            ParkingSpace parkingSpace = new ParkingSpace();
-            parkingSpace.setPolygon(polygon);
-            processParkingSpace(parkingSpace);
-        }
+        log.info("Successfully loaded file '{}' in '{}' table.", filePath, PARKING_SPACES);
     }
 
     private boolean isPolygonUnique(Polygon newPolygon) {

@@ -16,11 +16,16 @@ import java.util.Optional;
 @Transactional
 public interface OverlappingParkingSpaceRepo extends JpaRepository<OverlappingParkingSpace, Long> {
 
-    String CREATE_DB_INDEX_SQL = "CREATE INDEX IF NOT EXISTS ops_coordinates_idx ON "
-        + TableNameUtil.OVERLAPPING_PARKING_SPACES + " USING GIST (ops_coordinates)";
+    String CREATE_DB_INDEX_SQL = 
+    "CREATE INDEX IF NOT EXISTS ops_coordinates_idx " + 
+    "ON " + TableNameUtil.OVERLAPPING_PARKING_SPACES + 
+    " USING GIST (ops_coordinates)";
 
-    String GET_OVERLAPPING_PARKING_SPACE_BY_POINT_WITHIN = "SELECT * FROM " + TableNameUtil.OVERLAPPING_PARKING_SPACES
-        + " WHERE ST_Contains(CAST(ops_coordinates AS GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) LIMIT 1";
+    String GET_OVERLAPPING_PARKING_SPACE_BY_POINT_WITHIN = 
+    "SELECT * " + 
+    "FROM " + TableNameUtil.OVERLAPPING_PARKING_SPACES + 
+    " WHERE ST_Contains(CAST(ops_coordinates AS GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) " + 
+    "LIMIT 1";
 
     @Modifying
     @Query(value = CREATE_DB_INDEX_SQL, nativeQuery = true)
