@@ -238,8 +238,9 @@ export class MapComponent {
                 // console.log("before ", this.activePolygonInteractionLayer.toString())
                 // TODO: add timestamp data
                 const polygonCenter = polygon.getCenter()
-                const bounds = polygon.getBounds();
-                this.map.fitBounds(bounds)
+                this.map.setView(polygonCenter);
+                // const bounds = polygon.getBounds();
+                // this.map.fitBounds(bounds)
                 this.restApi.getTimestampDataHistory(parseElement.id).then((data:any)=>{
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
