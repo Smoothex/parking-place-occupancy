@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
+import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
+import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.util.DtoConverterUtil;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.calculateDifferenceInDays;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.convertJsonNodeToPolygon;
 import static org.gradle.backendpostgresqlapi.util.TableNameUtil.EDITED_PARKING_SPACES;
 
@@ -27,6 +30,7 @@ public class EditedParkingSpaceService {
 
     private final EditedParkingSpaceRepo editedParkingSpaceRepo;
     private final ParkingSpaceRepo parkingSpaceRepo;
+    private static final int DAYS_FOR_VALID_OCCUPANCY = 180;
 
     @Autowired
     public EditedParkingSpaceService(ParkingSpaceRepo parkingSpaceRepo, EditedParkingSpaceRepo editedParkingSpaceRepo) {
@@ -95,14 +99,26 @@ public class EditedParkingSpaceService {
                     .collect(Collectors.toList());
     }
 
-    public EditedParkingSpace updateOccupancyStatus(long id, boolean occupied) {
-        Optional<EditedParkingSpace> editedParkingSpaceOptional = getEditedParkingSpaceById(id);
-        if (editedParkingSpaceOptional.isPresent()) {
-            EditedParkingSpace editedParkingSpace = editedParkingSpaceOptional.get();
-            editedParkingSpace.setOccupied(occupied);
-            return editedParkingSpaceRepo.save(editedParkingSpace);
+    public void updateOccupancyStatusForAllSpaces() {
+        for (EditedParkingSpace editedParkingSpace : getAllEditedParkingSpaces()) {
+            boolean isOccupied = false;
+            for (ParkingPoint parkingPoint : editedParkingSpace.getParkingPoints()) {
+                for (Timestamp  timestamp : parkingPoint.getTimestamps()) {
+                    long daysPassedTimestamp = calculateDifferenceInDays(timestamp.getTimestamp());
+
+                    if (daysPassedTimestamp < DAYS_FOR_VALID_OCCUPANCY) {
+                        isOccupied = true;
+                        editedParkingSpace.setOccupied(isOccupied);
+                        editedParkingSpaceRepo.save(editedParkingSpace);
+                        break;
+                    }
+                }
+
+                if (isOccupied) {
+                    break;
+                }
+            }
         }
-        return null;
     }
 
     public Optional<String> getAreaOfEditedParkingSpaceById(long id) {
