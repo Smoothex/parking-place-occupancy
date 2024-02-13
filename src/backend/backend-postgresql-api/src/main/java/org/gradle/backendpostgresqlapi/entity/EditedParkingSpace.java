@@ -7,6 +7,7 @@ import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
 import org.locationtech.jts.geom.Polygon;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,6 +40,9 @@ public class EditedParkingSpace {
     @Enumerated(EnumType.STRING)
     @Column(name = "edit_position")
     private ParkingPosition position;
+
+    @OneToMany(mappedBy = "editedParkingSpace")
+    private Set<ParkingPoint> parkingPoints;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
     public EditedParkingSpace() {}

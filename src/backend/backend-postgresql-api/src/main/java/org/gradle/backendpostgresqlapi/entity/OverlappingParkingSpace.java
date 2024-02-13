@@ -31,7 +31,7 @@ public class OverlappingParkingSpace {
     private ParkingPosition position;
 
     @ManyToOne
-    @JoinColumn(name = "assigned_parking_space_id", nullable = false)
+    @JoinColumn(name = "ops_ps_id", nullable = false)
     private ParkingSpace assignedParkingSpace;
 
     @Override

@@ -21,7 +21,7 @@ public interface TimestampRepo extends JpaRepository<Timestamp, Long> {
     String GET_MAX_ONE_DUPLICATE = 
     "SELECT COUNT(*) " + 
     "FROM " + TableNameUtil.TIMESTAMPS + 
-    " WHERE parking_point_id = :id AND t_timestamp = :timestamp LIMIT 1";
+    " WHERE t_pp_id = :id AND t_timestamp = :timestamp LIMIT 1";
 
     @Modifying
     @Query(value = CREATE_INDEX_SQL, nativeQuery = true)
