@@ -49,7 +49,7 @@ public class EditedParkingSpaceService {
 
                 // Check if a parking space with reference to the current id already exists in the second database
                 boolean isDuplicate = editedParkingSpaceRepo.existsByParkingSpaceId(existingParkingSpace.getId());
-    
+
                 if (!isDuplicate) {
                     EditedParkingSpace editedParkingSpace = convertToEditedParkingSpace(existingParkingSpace);
                     editedParkingSpaceRepo.save(editedParkingSpace);
@@ -108,7 +108,7 @@ public class EditedParkingSpaceService {
 
                     if (daysPassedTimestamp < DAYS_FOR_VALID_OCCUPANCY) {
                         isOccupied = true;
-                        editedParkingSpace.setOccupied(isOccupied);
+                        editedParkingSpace.setOccupied(true);
                         editedParkingSpaceRepo.save(editedParkingSpace);
                         break;
                     }
@@ -142,21 +142,14 @@ public class EditedParkingSpaceService {
     }
 
     private EditedParkingSpace convertToEditedParkingSpace(ParkingSpace parkingSpace) {
-        EditedParkingSpace editedParkingSpace = new EditedParkingSpace();
-        editedParkingSpace.setParkingSpaceId(parkingSpace.getId());
-        editedParkingSpace.setPolygon(parkingSpace.getPolygon());
-        editedParkingSpace.setCapacity(parkingSpace.getCapacity());
-        editedParkingSpace.setArea(parkingSpace.getArea());
-        editedParkingSpace.setPosition(parkingSpace.getPosition());
-        return editedParkingSpace;
+		return new EditedParkingSpace(parkingSpace.getId(), parkingSpace.getPolygon(),
+            parkingSpace.getArea(), parkingSpace.getCapacity(), parkingSpace.getPosition());
     }
 
     public List<Long> getNeighbors(Long id) {
         editedParkingSpaceRepo.findById(id)
                               .orElseThrow(() -> new ResourceAccessException("Parking space with id: " + id + " not found."));
 
-        List<Long> neighborIds = editedParkingSpaceRepo.findNeighborIds(id);
-        return neighborIds;
+		return editedParkingSpaceRepo.findNeighborIds(id);
     }
-
 }

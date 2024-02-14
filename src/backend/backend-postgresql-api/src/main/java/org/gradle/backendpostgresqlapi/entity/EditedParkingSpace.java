@@ -47,6 +47,15 @@ public class EditedParkingSpace {
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
     public EditedParkingSpace() {}
 
+    public EditedParkingSpace(Long parkingSpaceId, Polygon polygon, Double area, Integer capacity,
+        ParkingPosition position) {
+        setParkingSpaceId(parkingSpaceId);
+        setPolygon(polygon);
+        setArea(area);
+        setCapacity(capacity);
+        setPosition(position);
+    }
+
     @Override
     public String toString() {
         return "EditedParkingSpace{" +
