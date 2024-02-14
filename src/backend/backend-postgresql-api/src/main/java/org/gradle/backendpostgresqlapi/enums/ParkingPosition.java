@@ -6,7 +6,8 @@ import lombok.Getter;
 public enum ParkingPosition {
     SCHRAEG("Diagonal"),
     LAENGS("Parallel"),
-    QUER("Perpendicular");
+    QUER("Perpendicular"),
+    UNAVAILABLE("N/A");
 
     private final String displayName;
 

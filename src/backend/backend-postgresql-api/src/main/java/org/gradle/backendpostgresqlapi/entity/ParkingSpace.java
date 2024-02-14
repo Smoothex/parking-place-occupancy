@@ -3,6 +3,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.gradle.backendpostgresqlapi.enums.ParkingPosition;
+import org.hibernate.annotations.DynamicInsert;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Entity
+@DynamicInsert
 @Table(name = "parking_spaces", schema = "public")
 public class ParkingSpace {
 
@@ -28,11 +30,11 @@ public class ParkingSpace {
     @Column(name = "ps_area")
     private double area;
 
-    @Column(name = "ps_capacity")
+    @Column(columnDefinition = "integer default -1", name = "ps_capacity")
     private Integer capacity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ps_position")
+    @Column(columnDefinition = "varchar(255) default 'UNAVAILABLE'", name = "ps_position")
     private ParkingPosition position;
 
     @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "ps_centroid", nullable = false, updatable = false)
