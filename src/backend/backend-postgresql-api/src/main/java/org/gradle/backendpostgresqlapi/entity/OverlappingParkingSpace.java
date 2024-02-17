@@ -31,8 +31,18 @@ public class OverlappingParkingSpace {
     private ParkingPosition position;
 
     @ManyToOne
-    @JoinColumn(name = "assigned_parking_space_id", nullable = false)
+    @JoinColumn(name = "ops_ps_id", nullable = false)
     private ParkingSpace assignedParkingSpace;
+
+    public OverlappingParkingSpace() {}
+
+    public OverlappingParkingSpace(Polygon polygon, Integer capacity, ParkingPosition position,
+        ParkingSpace assignedParkingSpace) {
+        setPolygon(polygon);
+        setCapacity(capacity);
+        setPosition(position);
+        setAssignedParkingSpace(assignedParkingSpace);
+    }
 
     @Override
     public String toString() {

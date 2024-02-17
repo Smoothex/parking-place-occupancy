@@ -36,16 +36,9 @@ public interface OverlappingParkingSpaceRepo extends JpaRepository<OverlappingPa
 
     @Modifying
     default void insertParkingSpace(ParkingSpace newParkingSpace, ParkingSpace existingParkingSpace) {
-        OverlappingParkingSpace overlappingParkingSpace = new OverlappingParkingSpace();
-        overlappingParkingSpace.setPolygon(newParkingSpace.getPolygon());
-        overlappingParkingSpace.setAssignedParkingSpace(existingParkingSpace);
-
-        if (newParkingSpace.getCapacity() != null) {
-            overlappingParkingSpace.setCapacity(newParkingSpace.getCapacity());
-        }
-        if (newParkingSpace.getPosition() != null) {
-            overlappingParkingSpace.setPosition(newParkingSpace.getPosition());
-        }
+        OverlappingParkingSpace overlappingParkingSpace = new OverlappingParkingSpace(
+            newParkingSpace.getPolygon(), newParkingSpace.getCapacity(),
+            newParkingSpace.getPosition(), existingParkingSpace);
 
         this.save(overlappingParkingSpace);
     }

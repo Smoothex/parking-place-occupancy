@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Repository
 @Transactional
 public interface TimestampRepo extends JpaRepository<Timestamp, Long> {
@@ -21,13 +19,11 @@ public interface TimestampRepo extends JpaRepository<Timestamp, Long> {
     String GET_MAX_ONE_DUPLICATE = 
     "SELECT COUNT(*) " + 
     "FROM " + TableNameUtil.TIMESTAMPS + 
-    " WHERE parking_point_id = :id AND t_timestamp = :timestamp LIMIT 1";
+    " WHERE t_pp_id = :id AND t_timestamp = :timestamp LIMIT 1";
 
     @Modifying
     @Query(value = CREATE_INDEX_SQL, nativeQuery = true)
     void createDbIndex();
-
-    List<Timestamp> getAllTimestampsByParkingPointId(long parkingPointId);
 
     @Query(value = GET_MAX_ONE_DUPLICATE, nativeQuery = true)
     int getMaxOneDuplicate(@Param("id") long parkingPointId, @Param("timestamp") String timestamp);

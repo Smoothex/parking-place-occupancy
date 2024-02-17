@@ -205,7 +205,7 @@ export class MapComponent {
                       <p style="margin: 0 0 10px;">Occupied: ${parseElement.occupied? "Yes": "No"}</p>
                       <p style="margin: 0 0 10px;">Area: ${area} m&sup2;</p>
                       <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity === -1 ? 'N/A' : parseElement.capacity}</p>
-                      <p style="margin: 0 0 10px;">Orientation: ${parseElement.position === null ?  'N/A' : parseElement.position}</p>
+                      <p style="margin: 0 0 10px;">Orientation: ${parseElement.position}</p>
                       <div style="text-align: center; margin-top: 10px; font-style: italic; color: #666;">
                                 To edit, drag the markers on the border, and click outside the parking place to save it
                       </div>

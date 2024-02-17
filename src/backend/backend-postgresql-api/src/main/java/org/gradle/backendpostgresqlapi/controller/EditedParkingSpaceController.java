@@ -2,11 +2,10 @@ package org.gradle.backendpostgresqlapi.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.gradle.backendpostgresqlapi.dto.EditedParkingSpaceDto;
-import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
+import org.gradle.backendpostgresqlapi.entity.Timestamp;
 import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
 import org.gradle.backendpostgresqlapi.service.ParkingPointService;
-import org.gradle.backendpostgresqlapi.service.TimestampService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +15,6 @@ import java.util.*;
 
 import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.formatDateToString;
 import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.parseStringToDate;
-import static org.gradle.backendpostgresqlapi.util.DtoConverterUtil.convertToDto;
 
 @RestController
 @RequestMapping("/api/parking-spaces")
@@ -25,19 +23,18 @@ public class EditedParkingSpaceController {
 
     private final EditedParkingSpaceService editedParkingSpaceService;
     private final ParkingPointService parkingPointService;
-    private final TimestampService timestampService;
 
     @Autowired
     public EditedParkingSpaceController(EditedParkingSpaceService editedParkingSpaceService,
-        ParkingPointService parkingPointService, TimestampService timestampService) {
+        ParkingPointService parkingPointService) {
         this.editedParkingSpaceService = editedParkingSpaceService;
         this.parkingPointService = parkingPointService;
-        this.timestampService = timestampService;
     }
 
     // http://localhost:8080/api/parking-spaces
     @GetMapping
     public ResponseEntity<List<EditedParkingSpaceDto>> getAllEditedParkingSpaces() {
+        editedParkingSpaceService.updateOccupancyStatusForAllSpaces();
         List<EditedParkingSpaceDto> editedParkingSpaceDtos = editedParkingSpaceService.getAllEditedParkingSpacesAsDto();
         if (editedParkingSpaceDtos.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -71,21 +68,6 @@ public class EditedParkingSpaceController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(editedParkingSpaceDtos);
-    }
-
-    // http://localhost:8080/api/parking-spaces/1/occupancy?occupied=true
-    @PatchMapping("/{id}/occupancy")
-    public ResponseEntity<EditedParkingSpaceDto> updateOccupancyStatus(@PathVariable long id, @RequestParam boolean occupied) {
-        try {
-            EditedParkingSpace updatedParkingSpace = editedParkingSpaceService.updateOccupancyStatus(id, occupied);
-            if (updatedParkingSpace != null) {
-                return ResponseEntity.ok(convertToDto(updatedParkingSpace));
-            }
-        } catch(IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        return ResponseEntity.notFound().build();
     }
 
     // http://localhost:8080/api/parking-spaces/1/polygon
@@ -126,7 +108,7 @@ public class EditedParkingSpaceController {
 
         try {
             for (ParkingPoint parkingPoint : parkingPointService.getAllParkingPointsByEditedParkingSpaceId(id)) {
-                timestampsAsStrings.addAll(timestampService.getAllTimestampsByParkingPointId(parkingPoint.getId()));
+                timestampsAsStrings.addAll(parkingPoint.getTimestamps().stream().map(Timestamp::getTimestamp).toList());
             }
 
             for (String timestampStr : timestampsAsStrings) {

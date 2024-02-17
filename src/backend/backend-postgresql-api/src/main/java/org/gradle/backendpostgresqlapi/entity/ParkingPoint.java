@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Locale;
+import java.util.Set;
+import org.locationtech.jts.geom.Point;
 
 @Getter
 @Setter
@@ -18,11 +20,14 @@ public class ParkingPoint {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "edited_parking_space_id")
+    @JoinColumn(name = "pp_eps_id")
     private EditedParkingSpace editedParkingSpace;
 
     @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "pp_coordinates", nullable = false, updatable = false)
-    private org.locationtech.jts.geom.Point point;
+    private Point point;
+
+    @OneToMany(mappedBy = "parkingPoint")
+    private Set<Timestamp> timestamps;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)
     public ParkingPoint() {}
@@ -35,7 +40,7 @@ public class ParkingPoint {
                     ", coordinates=" + coordinatesToString(point) + "}";
     }
 
-    private String coordinatesToString(org.locationtech.jts.geom.Point point) {
+    private String coordinatesToString(Point point) {
         if (point == null) return "null";
 
         return String.format(Locale.US,"(%.4f, %.4f)", point.getCoordinate().x, point.getCoordinate().y);
