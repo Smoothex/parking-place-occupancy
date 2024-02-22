@@ -41,7 +41,7 @@ public class EditedParkingSpace {
     @Column(name = "edit_position")
     private ParkingPosition position;
 
-    @OneToMany(mappedBy = "editedParkingSpace")
+    @OneToMany(mappedBy = "editedParkingSpace", fetch = FetchType.EAGER)
     private Set<ParkingPoint> parkingPoints;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)

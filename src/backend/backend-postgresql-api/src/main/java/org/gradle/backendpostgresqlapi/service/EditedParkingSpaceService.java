@@ -99,7 +99,12 @@ public class EditedParkingSpaceService {
                     .collect(Collectors.toList());
     }
 
+    /**
+     * Checks for each edited parking space if there is a timestamp related to it, which is sooner than
+     * a predefined threshold, and updates the occupancy status respectively.
+     */
     public void updateOccupancyStatusForAllSpaces() {
+        log.info("Updating occupancy status for all parking spaces...");
         for (EditedParkingSpace editedParkingSpace : getAllEditedParkingSpaces()) {
             boolean isOccupied = false;
             for (ParkingPoint parkingPoint : editedParkingSpace.getParkingPoints()) {
@@ -108,8 +113,6 @@ public class EditedParkingSpaceService {
 
                     if (daysPassedTimestamp < DAYS_FOR_VALID_OCCUPANCY) {
                         isOccupied = true;
-                        editedParkingSpace.setOccupied(true);
-                        editedParkingSpaceRepo.save(editedParkingSpace);
                         break;
                     }
                 }
@@ -118,7 +121,14 @@ public class EditedParkingSpaceService {
                     break;
                 }
             }
+
+            // Check if the occupancy status have to be updated
+            if (editedParkingSpace.isOccupied() != isOccupied) {
+                editedParkingSpace.setOccupied(isOccupied);
+                editedParkingSpaceRepo.save(editedParkingSpace);
+            }
         }
+        log.info("Occupancy status updated!");
     }
 
     public Optional<String> getAreaOfEditedParkingSpaceById(long id) {

@@ -60,6 +60,8 @@ public class DatabaseConnection {
                 parkingSpaces.forEach(parkingSpace -> System.out.println(parkingSpace.toString()));
             }
 
+            // Update occupancy status for all edited parking spaces
+            editedParkingSpaceService.updateOccupancyStatusForAllSpaces();
             log.info("Program is running!");
         };
     }

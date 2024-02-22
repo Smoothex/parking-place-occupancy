@@ -26,7 +26,7 @@ public class ParkingPoint {
     @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "pp_coordinates", nullable = false, updatable = false)
     private Point point;
 
-    @OneToMany(mappedBy = "parkingPoint")
+    @OneToMany(mappedBy = "parkingPoint", fetch = FetchType.EAGER)
     private Set<Timestamp> timestamps;
 
     // default constructor only for the sake of JPA (See https://spring.io/projects/spring-data-jpa)

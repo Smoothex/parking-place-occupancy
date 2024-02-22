@@ -34,7 +34,6 @@ public class EditedParkingSpaceController {
     // http://localhost:8080/api/parking-spaces
     @GetMapping
     public ResponseEntity<List<EditedParkingSpaceDto>> getAllEditedParkingSpaces() {
-        editedParkingSpaceService.updateOccupancyStatusForAllSpaces();
         List<EditedParkingSpaceDto> editedParkingSpaceDtos = editedParkingSpaceService.getAllEditedParkingSpacesAsDto();
         if (editedParkingSpaceDtos.isEmpty()) {
             return ResponseEntity.noContent().build();
