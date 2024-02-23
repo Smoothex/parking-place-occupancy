@@ -42,4 +42,6 @@ public interface OverlappingParkingSpaceRepo extends JpaRepository<OverlappingPa
 
         this.save(overlappingParkingSpace);
     }
+
+    boolean existsByAssignedParkingSpaceId(long id);
 }
