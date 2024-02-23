@@ -35,15 +35,28 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     "SELECT * FROM " + TableNameUtil.PARKING_SPACES +
     " WHERE ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) <= 10 " +
     "ORDER BY ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) " +
-    "ASC LIMIT 3";
+    "ASC LIMIT 4";
 
     String GET_INTERSECTION_AREA_OF_TWO_POLYGONS = 
     "SELECT ST_Area(ST_Intersection(ps_coordinates, ST_GeomFromText(:polygon, 4326))) / ps_area * 100 " +
     "FROM " + TableNameUtil.PARKING_SPACES + 
     " WHERE ps_id=:existing_id";
 
+    String GET_DIFFERENCE_OF_TWO_POLYGONS =
+    "SELECT ST_AsText(ST_Difference(ST_GeomFromText(:polygon, 4326), CAST(ps_coordinates AS GEOMETRY))) " +
+    "FROM " + TableNameUtil.PARKING_SPACES +
+    " WHERE ps_id=:existing_id";
+
+    String GET_UNION_OF_TWO_POLYGONS =
+    "SELECT ST_AsGeoJSON(ST_Union(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:polygon, 4326))) " +
+    "FROM " + TableNameUtil.PARKING_SPACES +
+    " WHERE ps_id=:existing_id";
+
     String CALCULATE_CENTROID_FOR_POLYGON = 
-    "SELECT ST_AsGeoJSON(ST_Centroid(ST_GeomFromText(:polygon, 4326)))";
+    "SELECT ST_AsGeoJSON(ST_Transform(ST_Centroid(ST_GeomFromText(:polygon, 4326)), 4326))";
+
+    String CALCULATE_AREA_FOR_POLYGON =
+    "SELECT ST_Area(ST_GeomFromText(:polygon, 4326))";
 
     String GET_PARKING_SPACE_ID_BY_POINT_WITHIN = 
     "SELECT ps_id FROM " + TableNameUtil.PARKING_SPACES +
@@ -67,11 +80,20 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     @Query(value = CALCULATE_CENTROID_FOR_POLYGON, nativeQuery = true)
     String calculateCentroidForPolygon(@Param("polygon") String polygon);
 
+    @Query(value = CALCULATE_AREA_FOR_POLYGON, nativeQuery = true)
+    double calculateAreaForPolygon(@Param("polygon") String polygon);
+
     @Query(value = FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID, nativeQuery = true)
     long findOneDuplicatePolygonByCentroid(@Param("centroidToCompareWith") String centroidToCompareWith);
 
     @Query(value = GET_INTERSECTION_AREA_OF_TWO_POLYGONS, nativeQuery = true)
-    double findIntersectionAreaOfTwoPolygons(@Param("polygon") String polygon, @Param("existing_id") Long existingPolygonId);
+    double getIntersectionAreaOfTwoPolygons(@Param("polygon") String polygon, @Param("existing_id") Long existingPolygonId);
+
+    @Query(value = GET_DIFFERENCE_OF_TWO_POLYGONS, nativeQuery = true)
+    String getDifferenceOfTwoPolygons(@Param("polygon") String polygon, @Param("existing_id") Long existingPolygonId);
+
+    @Query(value = GET_UNION_OF_TWO_POLYGONS, nativeQuery = true)
+    String getUnionOfTwoPolygons(@Param("polygon") String polygon, @Param("existing_id") Long existingPolygonId);
 
     @Query(value = FIND_CLOSEST_PARKING_SPACES_BY_CENTROID, nativeQuery = true)
     List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point);
