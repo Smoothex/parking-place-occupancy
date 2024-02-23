@@ -151,4 +151,12 @@ public class JsonHandler {
 
 		return geometryFactory.createPoint(coordinate);
     }
+
+    public static Polygon convertGeoJsonToPolygon(String polygonGeoJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(polygonGeoJson);
+        JsonNode coordinatesNode = rootNode.path("coordinates");
+
+        return convertJsonNodeToPolygon(coordinatesNode);
+    }
 }
