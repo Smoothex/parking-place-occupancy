@@ -57,6 +57,12 @@ export class MapComponent {
 
   polygonColor: string = 'green';
 
+  constructor(
+    private restApi: RestAPIService,
+    private storage: PlayStorageService,
+    private router: Router
+  ) {}
+
   private initMap(): void {
     this.map = L.map('map').setView([52.54412, 13.352], 15);
     var satelliteLayer = L.tileLayer(
@@ -95,15 +101,8 @@ export class MapComponent {
     if (this.debug) {
       console.log('Markers present before:', this.markerLayer);
     }
-    // change of polygon selection
-    /*if(this.activePolygonInteractionLayer != e){
-      console.log("clicked next polygon")
-      this.activePolygonInteractionLayer.target.editing.disable();
-      this.activePolygonInteractionLayer = e
-    }*/
-    console.log("Map interaction ", this.activePolygonInteractionLayer)
+
     if (this.activePolygonInteractionLayer != undefined) {
-      console.log('New edited polygon', this.activePolygonInteractionLayer);
       const polygonID = this.activePolygonInteractionLayer.sourceTarget._leaflet_id;
       const index = this.parkingSpaceData.findIndex(
         (item: any) => item.polygon_layer._leaflet_id === polygonID
@@ -113,11 +112,7 @@ export class MapComponent {
         return [item.lat, item.lng];
       });
       const newGeomerty = this.removeDuplicates(newDuplGeomerty)
-      console.log("old geometry",oldGeometry)
-      console.log("new geometry",newGeomerty)
-      // TODO: add if any coordinate changed only show alert otherwise leave it be
       const sameOrNot=this.arraysHaveSameElementsUpToLastSecond(newGeomerty , oldGeometry)
-      console.log("same or not ", sameOrNot)
 
       if(!sameOrNot){
       this.activePolygonInteractionLayer.target.editing.disable();
@@ -129,15 +124,10 @@ export class MapComponent {
 
       console.log('editing disabled');
       this.activePolygonInteractionLayer = undefined;
-      // TODO: add editing check here
     }
   }
 
-  constructor(
-    private restApi: RestAPIService,
-    private storage: PlayStorageService,
-    private router: Router
-  ) {}
+
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -148,7 +138,6 @@ export class MapComponent {
   }
   highlightFeature(e: any) {
     let layer = e.target;
-
     layer.setStyle({
       fillColor: 'blue', // Change this to the color you want on mouseover
       weight: 2,
@@ -175,9 +164,7 @@ export class MapComponent {
     this.restApi.getAllParkingSpaces().then(
       (data: any) => {
         data.forEach((element: any) => {
-          // const parseElement = JSON.parse(element);
           const parseElement = element;
-          // console.log(element);
           this.restApi
             .getParkingSpaceAreaWithId(parseElement.id)
             .then(
@@ -195,13 +182,11 @@ export class MapComponent {
                 obj.x,
               ]);
 
-              // console.log(arrayOfArrays);
               parseElement.coordinates = arrayOfArrays;
               const simple = this.simplifyGeoPolygon(arrayOfArrays);
               const defaultPopup =
                 `
                   <div style="font-family: 'Arial', sans-serif; color: #333; padding: 15px;">
-                    <h3 style="margin-bottom: 10px;">ID: ${parseElement.id}</h3>
                       <p style="margin: 0 0 10px;">Occupied: ${parseElement.occupied? "Yes": "No"}</p>
                       <p style="margin: 0 0 10px;">Area: ${area} m&sup2;</p>
                       <p style="margin: 0 0 10px;">Capacity: ${parseElement.capacity === -1 ? 'N/A' : parseElement.capacity}</p>
@@ -211,14 +196,12 @@ export class MapComponent {
                       </div>
                   </div>
                 `
-                  //! should be removed after the demo !!! as not a good implementation of the code
               this.restApi.getTimestampDataHistory(parseElement.id).then((data:any)=>{
                 let polygonColor: string = 'green';
                 if(data.length != 0 ){
-                  console.log("history",data, data[data.length-1])
-                  const occupancyDemo: boolean = this.checkOccupancy(data[data.length-1])
+                  const occupancyDemo: boolean = this.checkOccupancy(data[data.length-1]) // Has been implemented in backend
 
-                  if(occupancyDemo){
+                  if(parseElement.occupied){
                     polygonColor = 'red';
 
                   }else{
@@ -232,9 +215,6 @@ export class MapComponent {
 
                 }
 
-
-                // if (parseElement.occupied) {
-                // }
                 polygon.setStyle({
                   fillColor: polygonColor,
                   color: polygonColor,
@@ -258,12 +238,9 @@ export class MapComponent {
               });
               polygon.on('click', (event) => {
                 const popup =polygon.getPopup()?.getContent()
-                // console.log("before ", this.activePolygonInteractionLayer.toString())
-                // TODO: add timestamp data
                 const polygonCenter = polygon.getCenter()
                 this.map.setView(polygonCenter);
-                // const bounds = polygon.getBounds();
-                // this.map.fitBounds(bounds)
+                // adding historical data for the polygons
                 this.restApi.getTimestampDataHistory(parseElement.id).then((data:any)=>{
                   console.log("timestamp data ", data )
                   const tablePopupContent = `
@@ -286,24 +263,17 @@ export class MapComponent {
                   polygon
                     .setPopupContent(defaultPopup + tablePopupContent)
                 })
-
-
-                console.log("pop", popup)
                 if (this.activePolygonInteractionLayer != undefined) {
                   this.activePolygonInteractionLayer.target.editing.disable()
                   this.mapClickInteraction(event);
                 }
                 if(this.activePolygonInteractionLayer === undefined){
-
                   this.activePolygonInteractionLayer = event;
                 }
                 console.log(event + 'parse' + parseElement.id);
                 polygon.bringToFront();
 
-                console.log(event);
                 event.target.editing.enable();
-                // TODO: add timestamp component here
-                // this.restApi.getTimestampData(p)
                 if (this.debug) {
                   console.log('orignal', arrayOfArrays);
                   this.addPolygon(arrayOfArrays);
@@ -311,7 +281,7 @@ export class MapComponent {
                   console.log('added marker on the layer', this.markerLayer);
                 }
               });
-              // adding historical data for the polygons
+
               // properties which could be edited would be stored here
               let obj = {
                 ...parseElement,
@@ -368,6 +338,11 @@ export class MapComponent {
       console.log('New array', simplifiedCoords);
     }
   }
+
+  /**
+   * Simplify the geo-coordinates for polygon
+   * @param originalCoords
+   */
   simplifyGeoPolygon(originalCoords: any) {
     const originalGeoJSON = turf.polygon([originalCoords]);
     const tolerance = this.tolerance; // Adjust the tolerance as needed
@@ -376,6 +351,10 @@ export class MapComponent {
     return simplifiedCoords;
   }
 
+  /**
+   * Catched editing event and updates the polygon through a REST call
+   * @param polygonEvent Polygon editing event
+   */
   editPolygonEvent(polygonEvent: any) {
 
     const polygonID = polygonEvent.sourceTarget._leaflet_id;
@@ -383,13 +362,11 @@ export class MapComponent {
       (item: any) => item.polygon_layer._leaflet_id === polygonID
     );
     this.parkingSpaceData[index].new_polygon_event_layer = polygonEvent;
-    // ! TODO : remove when backend capable to do it
     this.parkingSpaceData[index].simplified_edited_coordinates =
       this.parkingSpaceData[
         index
       ].new_polygon_event_layer.sourceTarget._latlngs[0];
 
-    console.log(this.parkingSpaceData[index]);
     const newGeometry: any[] = this.parkingSpaceData[
       index
     ].new_polygon_event_layer.sourceTarget._latlngs[0].map((item: any) => {
@@ -409,6 +386,9 @@ export class MapComponent {
       });
   }
   // future feature request
+  /**
+   * Add editable layer toolbox and functionality on top of map layer
+   */
   editableLayer() {
     let editableLayers = new L.FeatureGroup();
     this.map.addLayer(editableLayers);
@@ -425,27 +405,13 @@ export class MapComponent {
       position: 'topright',
       draw: {
         polyline: false,
-        polygon: false /* {
-          allowIntersection: false, // Restricts shapes to simple polygons
-          drawError: {
-            color: '#e1e100', // Color the shape will turn when intersects
-            message: "<strong>Oh snap!<strong> you can't draw that!", // Message that will show when intersect
-          },
-          shapeOptions: {
-            color: 'blue',
-          },
-        } */,
-        marker: false /* {
-          icon: new MyCustomMarker(),
-        }, */,
+        polygon: false ,
+        marker: false,
         circle: false,
         rectangle: false,
         circlemarker: false,
       },
-      edit: false /* {
-        featureGroup: editableLayers, //REQUIRED!!
-        remove: false,
-      } */,
+      edit: false ,
     };
     let drawControl = new L.Control.Draw(options);
     this.map.addControl(drawControl);
@@ -462,6 +428,11 @@ export class MapComponent {
     });
   }
 
+  /**
+   * Help function for comparing two arrays
+   * @param arr1
+   * @param arr2
+   */
   arraysHaveSameElementsUpToLastSecond(arr1: any[], arr2: any[]): boolean {
     const stringifyCoordinates = (arr: number[][]) => arr.map(coord => coord.join(','));
 
@@ -475,6 +446,10 @@ export class MapComponent {
     );
   }
 
+  /**
+   * remove duplicates from the coordinates array (Geo-coordinates )
+   * @param coordinates
+   */
   removeDuplicates(coordinates: any[][]): any[] {
     const uniqueCoordinates = coordinates.filter(
       (coord, index, self) =>
@@ -486,6 +461,11 @@ export class MapComponent {
 
     return uniqueCoordinates;
   }
+
+  /**
+   * Generate Timestamp tableDOM  for polygon
+   * @param timestampData Time stampo data
+   */
   generateTableRows(timestampData: any[]): string {
     if(timestampData.length == 0){
       return '<tr><td>No data available</td></tr>'
@@ -496,9 +476,12 @@ export class MapComponent {
       return `<tr><td>${datePart}</td><td>${timePart}</td></tr>`;
     }).join('');
   }
+
+  /**
+   * Checks the occupancy status in frontend depending on the timestamp data
+   * @param timestamp
+   */
   checkOccupancy(timestamp: string): boolean {
-    // Implement your logic to check if the parking place is occupied based on the timestamp
-    // For example, you can compare the timestamp with the current time
     const currentTimestamp = new Date().setMonth(12);
     const parkingTimestamp:any = new Date(timestamp.replace(/(\d{2}).(\d{2}).(\d{4}) (\d{2}:\d{2}:\d{2})/, '$3-$2-$1T$4'));
     return 9 <= parkingTimestamp.getMonth();
