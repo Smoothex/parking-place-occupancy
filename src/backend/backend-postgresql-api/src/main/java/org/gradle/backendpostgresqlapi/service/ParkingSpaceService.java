@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
 import static org.gradle.backendpostgresqlapi.util.JsonHandler.*;
@@ -24,8 +25,10 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 @Service
 public class ParkingSpaceService {
 
-    public static final int OVERLAPPING_AREA_THRESHOLD = 50;
-    public static final double DIFFERENCE_IN_SIZES_THRESHOLD = 1;
+    private static final int OVERLAPPING_AREA_THRESHOLD = 50;
+    private static final double DIFFERENCE_IN_SIZES_THRESHOLD = 1;
+    private static final int DISTANCE_TO_CLOSEST_NEIGHBORS_LIMIT = 20;
+
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
     private final OverlappingParkingSpaceService overlappingParkingSpaceService;
@@ -121,8 +124,8 @@ public class ParkingSpaceService {
             double newPolygonArea = parkingSpaceRepo.calculateAreaForPolygon(newPolygonAsString);
 
             // Get the closest parking spaces by their centroids and loop over them
-            List<ParkingSpace> closestParkingSpacesByCentroid = parkingSpaceRepo
-                .findClosestParkingSpacesByCentroid(newCentroid.toString());
+            List<ParkingSpace> closestParkingSpacesByCentroid =
+                getClosestParkingSpacesByCentroidAndDistance(newCentroid.toString(), DISTANCE_TO_CLOSEST_NEIGHBORS_LIMIT);
 
             boolean isPolygonOverlapping = false;
             for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
@@ -178,5 +181,13 @@ public class ParkingSpaceService {
     private void saveParkingSpaceAndUpdateArea(ParkingSpace parkingSpace, Point centroid) {
         ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace, centroid);
         parkingSpaceRepo.updateAreaColumn(savedParkingSpace.getId());
+    }
+
+    public List<ParkingSpace> getClosestParkingSpacesByCentroidAndDistance(String centroid, int distance) {
+        return parkingSpaceRepo.findClosestParkingSpacesByCentroid(centroid, distance);
+    }
+
+    public Optional<Long> getIdOfParkingSpaceByPointWithin(String point) {
+        return parkingSpaceRepo.getParkingSpaceIdByPointWithin(point);
     }
 }

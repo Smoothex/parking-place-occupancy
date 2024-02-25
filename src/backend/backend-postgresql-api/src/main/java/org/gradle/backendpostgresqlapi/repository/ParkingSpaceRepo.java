@@ -33,7 +33,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     String FIND_CLOSEST_PARKING_SPACES_BY_CENTROID = 
     "SELECT * FROM " + TableNameUtil.PARKING_SPACES +
-    " WHERE ST_Distance(ST_GeographyFromText(:point), ps_centroid) <= 20" +
+    " WHERE ST_Distance(ST_GeographyFromText(:point), ps_centroid) <= :distance" +
     " ORDER BY ST_Distance(ST_GeographyFromText(:point), ps_centroid)" +
     " ASC LIMIT 4";
 
@@ -96,7 +96,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     String getUnionOfTwoPolygons(@Param("polygon") String polygon, @Param("existing_id") Long existingPolygonId);
 
     @Query(value = FIND_CLOSEST_PARKING_SPACES_BY_CENTROID, nativeQuery = true)
-    List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point);
+    List<ParkingSpace> findClosestParkingSpacesByCentroid(@Param("point") String point, @Param("distance") int distance);
 
     @Query(value = GET_PARKING_SPACE_ID_BY_POINT_WITHIN, nativeQuery = true)
     Optional<Long> getParkingSpaceIdByPointWithin(@Param("pointWithin") String pointWithin);
