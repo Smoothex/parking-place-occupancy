@@ -23,45 +23,45 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     String UPDATE_AREA_SQL = 
     "UPDATE " + TableNameUtil.PARKING_SPACES +
-    " SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2) " +
-    "WHERE ps_id = :id";
+    " SET ps_area = ROUND(CAST(ST_AREA(ps_coordinates) AS NUMERIC),2)" +
+    " WHERE ps_id = :id";
 
     String FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID = 
     "SELECT COUNT(*) FROM " + TableNameUtil.PARKING_SPACES +
-    " WHERE ST_Equals(CAST(ps_centroid AS GEOMETRY), ST_GeomFromText(:centroidToCompareWith, 4326)) " +
-    "LIMIT 1";
+    " WHERE ST_Equals(CAST(ps_centroid AS GEOMETRY), ST_GeomFromText(:centroidToCompareWith, 4326))" +
+    " LIMIT 1";
 
     String FIND_CLOSEST_PARKING_SPACES_BY_CENTROID = 
     "SELECT * FROM " + TableNameUtil.PARKING_SPACES +
-    " WHERE ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) <= 10 " +
-    "ORDER BY ST_Distance(ST_GeomFromText(:point, 4326), CAST(ps_centroid AS GEOMETRY)) " +
-    "ASC LIMIT 4";
+    " WHERE ST_Distance(ST_GeographyFromText(:point), ps_centroid) <= 20" +
+    " ORDER BY ST_Distance(ST_GeographyFromText(:point), ps_centroid)" +
+    " ASC LIMIT 4";
 
     String GET_INTERSECTION_AREA_OF_TWO_POLYGONS = 
-    "SELECT ST_Area(ST_Intersection(ps_coordinates, ST_GeomFromText(:polygon, 4326))) / ps_area * 100 " +
-    "FROM " + TableNameUtil.PARKING_SPACES + 
+    "SELECT ST_Area(ST_Intersection(ps_coordinates, ST_GeographyFromText(:polygon))) / ps_area * 100" +
+    " FROM " + TableNameUtil.PARKING_SPACES +
     " WHERE ps_id=:existing_id";
 
     String GET_DIFFERENCE_OF_TWO_POLYGONS =
-    "SELECT ST_AsText(ST_Difference(ST_GeomFromText(:polygon, 4326), CAST(ps_coordinates AS GEOMETRY))) " +
-    "FROM " + TableNameUtil.PARKING_SPACES +
+    "SELECT ST_AsText(ST_Difference(ST_GeomFromText(:polygon, 4326), CAST(ps_coordinates AS GEOMETRY)))" +
+    " FROM " + TableNameUtil.PARKING_SPACES +
     " WHERE ps_id=:existing_id";
 
     String GET_UNION_OF_TWO_POLYGONS =
-    "SELECT ST_AsGeoJSON(ST_Union(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:polygon, 4326))) " +
-    "FROM " + TableNameUtil.PARKING_SPACES +
+    "SELECT ST_AsGeoJSON(CAST(ST_Union(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:polygon, 4326)) AS GEOGRAPHY))" +
+    " FROM " + TableNameUtil.PARKING_SPACES +
     " WHERE ps_id=:existing_id";
 
     String CALCULATE_CENTROID_FOR_POLYGON = 
-    "SELECT ST_AsGeoJSON(ST_Transform(ST_Centroid(ST_GeomFromText(:polygon, 4326)), 4326))";
+    "SELECT ST_AsGeoJSON(ST_Centroid(ST_GeographyFromText(:polygon)))";
 
     String CALCULATE_AREA_FOR_POLYGON =
-    "SELECT ST_Area(ST_GeomFromText(:polygon, 4326))";
+    "SELECT ST_Area(ST_GeographyFromText(:polygon))";
 
     String GET_PARKING_SPACE_ID_BY_POINT_WITHIN = 
     "SELECT ps_id FROM " + TableNameUtil.PARKING_SPACES +
-    " WHERE ST_Contains(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:pointWithin, 4326)) " +
-    "LIMIT 1";
+    " WHERE ST_Contains(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:pointWithin, 4326))" +
+    " LIMIT 1";
 
     @Modifying
     @Query(value = CREATE_MAIN_DATA_INDEX_SQL, nativeQuery = true)

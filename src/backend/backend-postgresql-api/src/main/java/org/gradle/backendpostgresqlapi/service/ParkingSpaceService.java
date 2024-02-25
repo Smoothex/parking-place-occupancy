@@ -11,7 +11,6 @@ import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,16 +25,17 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 public class ParkingSpaceService {
 
     public static final int OVERLAPPING_AREA_THRESHOLD = 50;
-    public static final double DIFFERENCE_IN_SIZES_THRESHOLD = 1.5;
+    public static final double DIFFERENCE_IN_SIZES_THRESHOLD = 1;
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
-    private final OverlappingParkingSpaceRepo overlappingParkingSpaceRepo;
+    private final OverlappingParkingSpaceService overlappingParkingSpaceService;
 
     @Autowired
-    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo) {
+    public ParkingSpaceService(ResourceLoader resourceLoader, ParkingSpaceRepo parkingSpaceRepo,
+        OverlappingParkingSpaceService overlappingParkingSpaceService) {
         this.resourceLoader = resourceLoader;
         this.parkingSpaceRepo = parkingSpaceRepo;
-        this.overlappingParkingSpaceRepo = overlappingParkingSpaceRepo;
+        this.overlappingParkingSpaceService = overlappingParkingSpaceService;
     }
 
     /**
@@ -109,10 +109,13 @@ public class ParkingSpaceService {
                 newPolygon = (Polygon) newPolygon.buffer(0);
             }
 
-            // Get new polygon's centroid as GeoJson and convert it to a point
+            // Get new polygon's centroid as GeoJson
             String newPolygonAsString = newPolygon.toString();
             String newPolygonCentroidAsGeoJson = parkingSpaceRepo.calculateCentroidForPolygon(newPolygonAsString);
+
+            // Convert it to a point and set it to the new parking space
             Point newCentroid = convertGeoJsonToPoint(newPolygonCentroidAsGeoJson);
+            parkingSpace.setCentroid(newCentroid);
 
             // Get new polygon's area
             double newPolygonArea = parkingSpaceRepo.calculateAreaForPolygon(newPolygonAsString);
@@ -132,8 +135,8 @@ public class ParkingSpaceService {
 
                     // Case 1: When the new polygon is much bigger assign it to the existing one
                     if (newPolygonArea / neighboringParkingSpace.getArea() >= DIFFERENCE_IN_SIZES_THRESHOLD) {
-                        if (!overlappingParkingSpaceRepo.existsByAssignedParkingSpaceId(neighboringParkingSpace.getId())) {
-                            overlappingParkingSpaceRepo.insertParkingSpace(parkingSpace, neighboringParkingSpace);
+                        if (!overlappingParkingSpaceService.doesOverlappingSpaceExistByCentroid(parkingSpace.getCentroid())) {
+                            overlappingParkingSpaceService.createAndSaveOverlappingParkingSpace(parkingSpace, neighboringParkingSpace);
                         }
                     } else {
                         // Case 2: When new polygon is rather small, aggregate both polygons
