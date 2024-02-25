@@ -5,11 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.gradle.backendpostgresqlapi.configuration.GeoDataFile;
 import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
 import org.gradle.backendpostgresqlapi.entity.ParkingSpace;
-import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
-import org.gradle.backendpostgresqlapi.service.EditedParkingSpaceService;
-import org.gradle.backendpostgresqlapi.service.ParkingSpaceService;
-import org.gradle.backendpostgresqlapi.service.ParkingPointService;
-import org.gradle.backendpostgresqlapi.service.TimestampService;
+import org.gradle.backendpostgresqlapi.service.*;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -34,11 +30,11 @@ public class DatabaseConnection {
     @Bean
     ApplicationRunner initializer(ParkingSpaceService parkingSpaceService, EditedParkingSpaceService editedParkingSpaceService,
         ParkingPointService parkingPointService, TimestampService timestampService,
-        OverlappingParkingSpaceRepo overlappingParkingSpaceRepo, GeoDataFile geoDataFile) {
+        OverlappingParkingSpaceService overlappingParkingSpaceService, GeoDataFile geoDataFile) {
         return args -> {
             // Initialize indexes for some tables
             parkingSpaceService.initializeDbIndex();
-            overlappingParkingSpaceRepo.initializeDbIndex();
+            overlappingParkingSpaceService.initializeDbIndex();
             parkingPointService.initializeDbIndex();
             timestampService.initializeDbIndex();
 
