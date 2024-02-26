@@ -13,8 +13,8 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.gradle.backendpostgresqlapi.util.CsvHandler.getCsvDataFromFile;
@@ -25,9 +25,10 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_SPACES;
 @Service
 public class ParkingSpaceService {
 
-    private static final int OVERLAPPING_AREA_THRESHOLD = 50;
-    private static final double DIFFERENCE_IN_SIZES_THRESHOLD = 1;
+    private static final double OVERLAPPING_AREA_THRESHOLD = 0.5;
+    private static final double DIFFERENCE_IN_SIZES_THRESHOLD = 1.0;
     private static final int DISTANCE_TO_CLOSEST_NEIGHBORS_LIMIT = 20;
+    public static final double MIN_THRESHOLD_FOR_BEING_OVERLAPPED = 0.01;
 
     private final ResourceLoader resourceLoader;
     private final ParkingSpaceRepo parkingSpaceRepo;
@@ -103,8 +104,8 @@ public class ParkingSpaceService {
         return parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString()) == 0;
     }
 
-    private void processParkingSpace(ParkingSpace parkingSpace) throws JsonProcessingException {
-        Polygon newPolygon = parkingSpace.getPolygon();
+    private void processParkingSpace(ParkingSpace newParkingSpace) throws JsonProcessingException {
+        Polygon newPolygon = newParkingSpace.getPolygon();
         if (isPolygonUnique(newPolygon)) {
 
             // Check if polygon is self-intersecting and if yes, cut the invalid part
@@ -118,7 +119,7 @@ public class ParkingSpaceService {
 
             // Convert it to a point and set it to the new parking space
             Point newCentroid = convertGeoJsonToPoint(newPolygonCentroidAsGeoJson);
-            parkingSpace.setCentroid(newCentroid);
+            newParkingSpace.setCentroid(newCentroid);
 
             // Get new polygon's area
             double newPolygonArea = parkingSpaceRepo.calculateAreaForPolygon(newPolygonAsString);
@@ -127,55 +128,112 @@ public class ParkingSpaceService {
             List<ParkingSpace> closestParkingSpacesByCentroid =
                 getClosestParkingSpacesByCentroidAndDistance(newCentroid.toString(), DISTANCE_TO_CLOSEST_NEIGHBORS_LIMIT);
 
-            boolean isPolygonOverlapping = false;
-            for (ParkingSpace neighboringParkingSpace : closestParkingSpacesByCentroid) {
-                double percentageOfOverlappingArea = parkingSpaceRepo
-                    .getIntersectionAreaOfTwoPolygons(newPolygonAsString, neighboringParkingSpace.getId());
-                log.debug("Intersection area: {}", String.format("%.2f", percentageOfOverlappingArea));
+            // Initialize help variables
+            double maxIntersectionArea = 0.0;
+            ParkingSpace maxOverlappingParkingSpace = null;
+            List<ParkingSpace> parkingSpacesWithOverlap = new ArrayList<>();
 
-                // When the overlapping area exceeds the threshold we differentiate between two cases
-                if (percentageOfOverlappingArea >= OVERLAPPING_AREA_THRESHOLD) {
+            // Iterate through closest neighbors and find max intersection
+            for (ParkingSpace currentNeighbor : closestParkingSpacesByCentroid) {
+                double currentIntersectionArea = parkingSpaceRepo.getIntersectionAreaOfTwoPolygons(
+                    newPolygonAsString, currentNeighbor.getId());
+                log.debug("Intersection area: {}", String.format("%.2f", currentIntersectionArea));
 
-                    // Case 1: When the new polygon is much bigger assign it to the existing one
-                    if (newPolygonArea / neighboringParkingSpace.getArea() >= DIFFERENCE_IN_SIZES_THRESHOLD) {
-                        if (!overlappingParkingSpaceService.doesOverlappingSpaceExistByCentroid(parkingSpace.getCentroid())) {
-                            overlappingParkingSpaceService.createAndSaveOverlappingParkingSpace(parkingSpace, neighboringParkingSpace);
-                        }
-                    } else {
-                        // Case 2: When new polygon is rather small, aggregate both polygons
-                        aggregatePolygons(newPolygonAsString, neighboringParkingSpace, closestParkingSpacesByCentroid);
+                double overlappedAreaPercentageOfExistingPolygon = currentIntersectionArea / currentNeighbor.getArea() ;
+
+                // Only add polygons to list if overlapped area is more than a minimal threshold
+                if(overlappedAreaPercentageOfExistingPolygon > MIN_THRESHOLD_FOR_BEING_OVERLAPPED) {
+                    parkingSpacesWithOverlap.add(currentNeighbor);
+                    if(currentIntersectionArea > maxIntersectionArea) {
+                        maxIntersectionArea = currentIntersectionArea;
+                        maxOverlappingParkingSpace = currentNeighbor;
                     }
-                    isPolygonOverlapping = true;
-                    break;
                 }
             }
 
-            if (!isPolygonOverlapping) {
-                saveParkingSpaceAndUpdateArea(parkingSpace, newCentroid);
+            if (maxIntersectionArea >= OVERLAPPING_AREA_THRESHOLD) {
+                // When the overlapping area exceeds the threshold we differentiate between two cases
+                // Case 1: When the new polygon is much bigger assign it to the existing one
+                if (newPolygonArea / maxOverlappingParkingSpace.getArea() >= DIFFERENCE_IN_SIZES_THRESHOLD) {
+                    if (!overlappingParkingSpaceService.doesOverlappingSpaceExistByCentroid(newParkingSpace.getCentroid())) {
+                        overlappingParkingSpaceService.createAndSaveOverlappingParkingSpace(newParkingSpace, maxOverlappingParkingSpace);
+                    }
+                } else {
+                    // Case 2: When new polygon is rather small, aggregate both polygons
+                    parkingSpacesWithOverlap.remove(maxOverlappingParkingSpace);
+                    aggregatePolygons(newPolygonAsString, maxOverlappingParkingSpace, parkingSpacesWithOverlap);
+                }
+            } else {
+                // No overlaps, therefore parking space is simply saved
+                if (parkingSpacesWithOverlap.isEmpty()) {
+                    saveParkingSpaceAndUpdateArea(newParkingSpace, newCentroid);
+                } else {
+                    // Check if the max intersection is more than half of the new polygon's area and aggregate it
+                    // with the max overlapping polygon otherwise reshape it and save it
+                    if (maxIntersectionArea / newPolygonArea >= OVERLAPPING_AREA_THRESHOLD) {
+                        parkingSpacesWithOverlap.remove(maxOverlappingParkingSpace);
+                        aggregatePolygons(newPolygonAsString, maxOverlappingParkingSpace, parkingSpacesWithOverlap);
+                    } else {
+                        reshapePolygonAndSaveParkingSpace(newParkingSpace, parkingSpacesWithOverlap);
+                    }
+                }
             }
+
         } else {
             log.debug("Parking space not loaded due to a duplication in the '{}' table.", PARKING_SPACES);
         }
     }
 
+    /**
+     * Aggregates existing and new polygon by cutting parts of new polygon,
+     * which intersect with other neighboring polygons.
+     * @param newPolygon the polygon, which will be aggregated with the existing one
+     * @param overlappedExistingParkingSpace the target parking space whose polygon has to be aggregated
+     * @param closestParkingSpaces list ot neighbors which intersect the new polygon
+     * @throws JsonProcessingException error on parsing a Geo JSON format
+     */
     private void aggregatePolygons(String newPolygon, ParkingSpace overlappedExistingParkingSpace,
         List<ParkingSpace> closestParkingSpaces) throws JsonProcessingException {
         String polygonToUnion = newPolygon;
         for (ParkingSpace neighborParkingSpace : closestParkingSpaces) {
-            if (!Objects.equals(neighborParkingSpace.getId(), overlappedExistingParkingSpace.getId())) {
-                polygonToUnion = parkingSpaceRepo.getDifferenceOfTwoPolygons(polygonToUnion, neighborParkingSpace.getId());
-            }
+            polygonToUnion = parkingSpaceRepo.getDifferenceOfTwoPolygons(polygonToUnion, neighborParkingSpace.getId());
         }
 
-        String aggrPolygonAsGeoJson = parkingSpaceRepo.getUnionOfTwoPolygons(polygonToUnion, overlappedExistingParkingSpace.getId());
+        String aggregatedPolygonAsGeoJson =
+            parkingSpaceRepo.getUnionOfTwoPolygons(polygonToUnion, overlappedExistingParkingSpace.getId());
 
-        Polygon aggregatedPolygon = convertGeoJsonToPolygon(aggrPolygonAsGeoJson);
+        Polygon aggregatedPolygon = convertGeoJsonToPolygon(aggregatedPolygonAsGeoJson);
+
         overlappedExistingParkingSpace.setPolygon(aggregatedPolygon);
 
-        String aggrPolygonCentroidAsGeoJson = parkingSpaceRepo.calculateCentroidForPolygon(aggregatedPolygon.toString());
-        Point aggrPolygonCentroid = convertGeoJsonToPoint(aggrPolygonCentroidAsGeoJson);
+        String aggregatedPolygonCentroidAsGeoJson = parkingSpaceRepo.calculateCentroidForPolygon(aggregatedPolygon.toString());
+        Point aggregatedPolygonCentroid = convertGeoJsonToPoint(aggregatedPolygonCentroidAsGeoJson);
 
-        saveParkingSpaceAndUpdateArea(overlappedExistingParkingSpace, aggrPolygonCentroid);
+        saveParkingSpaceAndUpdateArea(overlappedExistingParkingSpace, aggregatedPolygonCentroid);
+    }
+
+    /**
+     * Reshapes the new polygon by cutting parts of new polygon, which intersect
+     * with other neighboring polygons, and saves it.
+     * @param newParkingSpace the parking space whose polygon has to be reshaped and saved
+     * @param closestParkingSpaces list ot neighbors which intersect the new polygon
+     * @throws JsonProcessingException error on parsing a Geo JSON format
+     */
+    private void reshapePolygonAndSaveParkingSpace(ParkingSpace newParkingSpace, List<ParkingSpace> closestParkingSpaces)
+        throws JsonProcessingException {
+        String reshapedPolygonAsString = newParkingSpace.getPolygon().toString();
+        for (ParkingSpace neighborParkingSpace : closestParkingSpaces) {
+            reshapedPolygonAsString = parkingSpaceRepo.getDifferenceOfTwoPolygons(reshapedPolygonAsString, neighborParkingSpace.getId());
+        }
+
+        String reshapedPolygonAsGeoJson = parkingSpaceRepo.getGeoJsonForPolygon(reshapedPolygonAsString);
+        Polygon reshapedPolygon = convertGeoJsonToPolygon(reshapedPolygonAsGeoJson);
+        newParkingSpace.setPolygon(reshapedPolygon);
+
+        String reshapedPolygonCentroidAsGeoJson = parkingSpaceRepo.calculateCentroidForPolygon(reshapedPolygon.toString());
+        Point reshapedPolygonCentroid = convertGeoJsonToPoint(reshapedPolygonCentroidAsGeoJson);
+
+        saveParkingSpaceAndUpdateArea(newParkingSpace, reshapedPolygonCentroid);
     }
 
     private void saveParkingSpaceAndUpdateArea(ParkingSpace parkingSpace, Point centroid) {
