@@ -75,8 +75,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     void updateAreaColumn(@Param("id") Long parkingSpaceId);
 
     @Modifying
-    default ParkingSpace insertParkingSpace(ParkingSpace parkingSpace, Point centroid) {
-        parkingSpace.setCentroid(centroid);
+    default ParkingSpace insertParkingSpace(ParkingSpace parkingSpace) {
         return this.save(parkingSpace);
     }
 

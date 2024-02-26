@@ -237,7 +237,8 @@ public class ParkingSpaceService {
     }
 
     private void saveParkingSpaceAndUpdateArea(ParkingSpace parkingSpace, Point centroid) {
-        ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace, centroid);
+        parkingSpace.setCentroid(centroid);
+        ParkingSpace savedParkingSpace = parkingSpaceRepo.insertParkingSpace(parkingSpace);
         parkingSpaceRepo.updateAreaColumn(savedParkingSpace.getId());
     }
 
