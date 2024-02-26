@@ -38,7 +38,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     " ASC LIMIT 4";
 
     String GET_INTERSECTION_AREA_OF_TWO_POLYGONS = 
-    "SELECT ST_Area(ST_Intersection(ps_coordinates, ST_GeographyFromText(:polygon))) / ps_area * 100" +
+    "SELECT ST_Area(ST_Intersection(ps_coordinates, ST_GeographyFromText(:polygon)))" +
     " FROM " + TableNameUtil.PARKING_SPACES +
     " WHERE ps_id=:existing_id";
 
@@ -62,6 +62,9 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
     "SELECT ps_id FROM " + TableNameUtil.PARKING_SPACES +
     " WHERE ST_Contains(CAST(ps_coordinates AS GEOMETRY), ST_GeomFromText(:pointWithin, 4326))" +
     " LIMIT 1";
+
+    String GET_GEOJSON_FOR_POLYGON =
+    "SELECT ST_AsGeoJSON(ST_GeographyFromText(:polygon))";
 
     @Modifying
     @Query(value = CREATE_MAIN_DATA_INDEX_SQL, nativeQuery = true)
@@ -100,4 +103,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     @Query(value = GET_PARKING_SPACE_ID_BY_POINT_WITHIN, nativeQuery = true)
     Optional<Long> getParkingSpaceIdByPointWithin(@Param("pointWithin") String pointWithin);
+
+    @Query(value = GET_GEOJSON_FOR_POLYGON, nativeQuery = true)
+    String getGeoJsonForPolygon(@Param("polygon") String polygon);
 }
