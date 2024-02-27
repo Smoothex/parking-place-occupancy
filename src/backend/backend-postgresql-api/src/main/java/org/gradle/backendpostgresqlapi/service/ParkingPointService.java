@@ -1,14 +1,10 @@
 package org.gradle.backendpostgresqlapi.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.gradle.backendpostgresqlapi.entity.EditedParkingSpace;
-import org.gradle.backendpostgresqlapi.entity.OverlappingParkingSpace;
-import org.gradle.backendpostgresqlapi.entity.ParkingPoint;
-import org.gradle.backendpostgresqlapi.entity.Timestamp;
+import org.gradle.backendpostgresqlapi.entity.*;
 import org.gradle.backendpostgresqlapi.repository.EditedParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.OverlappingParkingSpaceRepo;
 import org.gradle.backendpostgresqlapi.repository.ParkingPointRepo;
-import org.gradle.backendpostgresqlapi.repository.ParkingSpaceRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
@@ -26,7 +22,9 @@ import static org.gradle.backendpostgresqlapi.util.TableNameUtil.PARKING_POINTS;
 @Service
 public class ParkingPointService {
 
-    private final ParkingSpaceRepo parkingSpaceRepo;
+    private static final int DISTANCE_TO_CLOSEST_NEIGHBORS_LIMIT = 100;
+
+    private final ParkingSpaceService parkingSpaceService;
     private final OverlappingParkingSpaceRepo overlappingParkingSpaceRepo;
     private final EditedParkingSpaceRepo editedParkingSpaceRepo;
     private final ParkingPointRepo parkingPointRepo;
@@ -34,10 +32,10 @@ public class ParkingPointService {
     private final ResourceLoader resourceLoader;
 
     @Autowired
-    public ParkingPointService(ParkingSpaceRepo parkingSpaceRepo, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo,
+    public ParkingPointService(ParkingSpaceService parkingSpaceService, OverlappingParkingSpaceRepo overlappingParkingSpaceRepo,
         EditedParkingSpaceRepo editedParkingSpaceRepo, ParkingPointRepo parkingPointRepo,
         TimestampService timestampService, ResourceLoader resourceLoader) {
-        this.parkingSpaceRepo = parkingSpaceRepo;
+        this.parkingSpaceService = parkingSpaceService;
         this.overlappingParkingSpaceRepo = overlappingParkingSpaceRepo;
         this.editedParkingSpaceRepo = editedParkingSpaceRepo;
         this.parkingPointRepo = parkingPointRepo;
@@ -87,7 +85,7 @@ public class ParkingPointService {
 
             if (duplicateId == -1L) {
                 // Search for a polygon in the 'parking_spaces' table
-                Optional<Long> parkingSpaceId = parkingSpaceRepo.getParkingSpaceIdByPointWithin(parkingPoint.getPoint().toString());
+                Optional<Long> parkingSpaceId = parkingSpaceService.getIdOfParkingSpaceByPointWithin(parkingPoint.getPoint().toString());
 
                 EditedParkingSpace editedParkingSpace = null;
                 if (parkingSpaceId.isPresent()) {
@@ -101,8 +99,21 @@ public class ParkingPointService {
                     if (overlappingParkingSpace.isPresent()) {
                         editedParkingSpace = editedParkingSpaceRepo
                             .getEditedParkingSpaceByParkingSpaceId(overlappingParkingSpace.get().getAssignedParkingSpace().getId());
+                        log.debug("Edited parking space with id '{}' found.", editedParkingSpace.getId());
                     } else {
                         log.debug("No edited parking space found for point '{}'.", parkingPoint.getPoint().toString());
+                    }
+                }
+
+                // In case no parking space or overlapping parking space was found until now
+                if (editedParkingSpace == null) {
+                    List<ParkingSpace> closestParkingSpaces = parkingSpaceService.getClosestParkingSpacesByCentroidAndDistance(
+                        parkingPoint.getPoint().toString(), DISTANCE_TO_CLOSEST_NEIGHBORS_LIMIT);
+
+                    if (!closestParkingSpaces.isEmpty()) {
+                        long closestParkingSpaceId = closestParkingSpaces.get(0).getId();
+                        editedParkingSpace = editedParkingSpaceRepo.getEditedParkingSpaceByParkingSpaceId(
+                            closestParkingSpaceId);
                     }
                 }
 

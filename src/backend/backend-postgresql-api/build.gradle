@@ -22,7 +22,7 @@ dependencies {
 	developmentOnly ('org.springframework.boot:spring-boot-docker-compose')
 	implementation ('org.springframework.boot:spring-boot-starter-data-jpa') // Spring will automatically create a DataSource when a JPA is included (https://www.baeldung.com/the-persistence-layer-with-spring-and-jpa)
 	testImplementation ('org.springframework.boot:spring-boot-starter-test')
-	runtimeOnly 'org.postgresql:postgresql:42.7.1'
+	runtimeOnly 'org.postgresql:postgresql:42.7.2'
 	implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
     implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.16.1'

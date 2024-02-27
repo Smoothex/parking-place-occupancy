@@ -151,4 +151,27 @@ public class JsonHandler {
 
 		return geometryFactory.createPoint(coordinate);
     }
+
+    public static Polygon convertGeoJsonToPolygon(String polygonGeoJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(polygonGeoJson);
+        JsonNode typeNode = rootNode.path("type");
+        JsonNode coordinatesNode = rootNode.path("coordinates");
+
+        // In case of multipolygon due to ST_Difference method get the biggest polygon
+        if (typeNode.asText().equals("MultiPolygon")) {
+            int indexChildWithMaxSize = 0;
+            int maxSize = 0;
+            for(int i = 0; i < coordinatesNode.size(); i++) {
+                int currentSize = coordinatesNode.get(i).get(0).size();
+                if(currentSize > maxSize) {
+                    maxSize = currentSize;
+                    indexChildWithMaxSize = i;
+                }
+            }
+
+            coordinatesNode = coordinatesNode.get(indexChildWithMaxSize);
+        }
+        return convertJsonNodeToPolygon(coordinatesNode);
+    }
 }
