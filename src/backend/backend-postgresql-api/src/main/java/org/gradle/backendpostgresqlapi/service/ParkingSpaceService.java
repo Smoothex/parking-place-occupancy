@@ -101,7 +101,7 @@ public class ParkingSpaceService {
 
     private boolean isPolygonUnique(Polygon newPolygon) {
         // Use a spatial query to check if a duplicate exists. If count is 0, the polygon is unique
-        return parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.getCentroid().toString()) == 0;
+        return parkingSpaceRepo.findOneDuplicatePolygonByCentroid(newPolygon.toString()) == 0;
     }
 
     private void processParkingSpace(ParkingSpace newParkingSpace) throws JsonProcessingException {

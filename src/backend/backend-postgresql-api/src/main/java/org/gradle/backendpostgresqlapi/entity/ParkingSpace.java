@@ -24,7 +24,7 @@ public class ParkingSpace {
     @Column(name = "ps_id", nullable = false)
     private Long id;
 
-    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ps_coordinates", nullable = false, updatable = false)
+    @Column(columnDefinition = "GEOGRAPHY(POLYGON, 4326)", name = "ps_coordinates", nullable = false)
     private Polygon polygon;
 
     @Column(name = "ps_area")
@@ -37,7 +37,7 @@ public class ParkingSpace {
     @Column(columnDefinition = "varchar(255) default 'UNAVAILABLE'", name = "ps_position")
     private ParkingPosition position;
 
-    @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "ps_centroid", nullable = false, updatable = false)
+    @Column(columnDefinition = "GEOGRAPHY(POINT, 4326)", name = "ps_centroid", nullable = false)
     private Point centroid;
 
     @OneToMany(mappedBy = "assignedParkingSpace")

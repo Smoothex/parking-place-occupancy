@@ -28,7 +28,7 @@ public interface ParkingSpaceRepo extends JpaRepository<ParkingSpace, Long> {
 
     String FIND_ONE_DUPLICATE_POLYGON_BY_CENTROID = 
     "SELECT COUNT(*) FROM " + TableNameUtil.PARKING_SPACES +
-    " WHERE ST_Equals(CAST(ps_centroid AS GEOMETRY), ST_GeomFromText(:centroidToCompareWith, 4326))" +
+    " WHERE ST_Equals(CAST(ps_centroid AS GEOMETRY), ST_Centroid(ST_GeomFromText(:centroidToCompareWith, 4326)))" +
     " LIMIT 1";
 
     String FIND_CLOSEST_PARKING_SPACES_BY_CENTROID = 
