@@ -26,6 +26,15 @@ import static org.gradle.backendpostgresqlapi.util.DateConverterUtil.formatMilli
 public class JsonHandler {
 
     private static final GeometryFactory geometryFactory = new GeometryFactory();
+    private static final String POLYGON_TYPE = "Polygon";
+    private static final String MULTI_POLYGON_TYPE = "MultiPolygon";
+    private static final String GEOMETRY_COLLECTION_TYPE = "GeometryCollection";
+    private static final String COORDINATES_PROPERTY = "coordinates";
+    private static final String TYPE_PROPERTY = "type";
+    private static final String GEOMETRIES_PROPERTY = "geometries";
+    private static final String FEATURES_PROPERTY = "features";
+    private static final String GEOMETRY_PROPERTY = "geometry";
+    private static final String DATE_TIME_PROPERTY = "DateTime";
 
     /**
      * This method reads a GeoJSON file from the filesystem and parses it as string.
@@ -64,11 +73,11 @@ public class JsonHandler {
     public static List<Polygon> getPolygonsFromGeoJson(String geoJson) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(geoJson);
-        JsonNode features = rootNode.path("features");
+        JsonNode features = rootNode.path(FEATURES_PROPERTY);
 
         List<Polygon> polygons = new ArrayList<>();
         for (JsonNode feature : features) {
-            JsonNode coordinates = feature.path("geometry").path("coordinates");
+            JsonNode coordinates = feature.path(GEOMETRY_PROPERTY).path(COORDINATES_PROPERTY);
             Polygon polygon = convertJsonNodeToPolygon(coordinates);
             polygons.add(polygon);
         }
@@ -109,12 +118,12 @@ public class JsonHandler {
     public static HashMap<ParkingPoint, Timestamp> getParkingPointsAndTimestampsFromFile(String geoJson) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(geoJson);
-        JsonNode features = rootNode.path("features");
+        JsonNode features = rootNode.path(FEATURES_PROPERTY);
 
         HashMap<ParkingPoint, Timestamp> pointTimestampHashMap = new HashMap<>();
         for (JsonNode feature : features) {
-            JsonNode timestampNode = feature.path("properties").path("DateTime");
-            JsonNode coordinatesNode = feature.path("geometry").path("coordinates");
+            JsonNode timestampNode = feature.path("properties").path(DATE_TIME_PROPERTY);
+            JsonNode coordinatesNode = feature.path(GEOMETRY_PROPERTY).path(COORDINATES_PROPERTY);
             ParkingPoint parkingPoint = convertJsonNodeToParkingPoint(coordinatesNode);
             Timestamp timestamp = convertJsonNodeToTimestamp(timestampNode);
             pointTimestampHashMap.put(parkingPoint, timestamp);
@@ -145,7 +154,7 @@ public class JsonHandler {
     public static Point convertGeoJsonToPoint(String pointGeoJson) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(pointGeoJson);
-        JsonNode coordinatesNode = rootNode.path("coordinates");
+        JsonNode coordinatesNode = rootNode.path(COORDINATES_PROPERTY);
 
         Coordinate coordinate = new Coordinate(coordinatesNode.get(0).asDouble(), coordinatesNode.get(1).asDouble());
 
@@ -155,11 +164,26 @@ public class JsonHandler {
     public static Polygon convertGeoJsonToPolygon(String polygonGeoJson) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(polygonGeoJson);
-        JsonNode typeNode = rootNode.path("type");
-        JsonNode coordinatesNode = rootNode.path("coordinates");
+        JsonNode typeNode = rootNode.path(TYPE_PROPERTY);
+        JsonNode coordinatesNode = rootNode.path(COORDINATES_PROPERTY);
+
+        // In case of a geometry collection when we aggregate
+        // using ST_Union take only a polygon or multipolygon
+        if (typeNode.asText().equals(GEOMETRY_COLLECTION_TYPE)) {
+            typeNode = rootNode.get(GEOMETRIES_PROPERTY);
+
+			for(JsonNode child : typeNode) {
+                String typeName = child.get(TYPE_PROPERTY).asText();
+				if (typeName.equals(POLYGON_TYPE) || typeName.equals(MULTI_POLYGON_TYPE)) {
+                    typeNode = child.get(TYPE_PROPERTY);
+                    coordinatesNode = child.get(COORDINATES_PROPERTY);
+                    break;
+                }
+			}
+        }
 
         // In case of multipolygon due to ST_Difference method get the biggest polygon
-        if (typeNode.asText().equals("MultiPolygon")) {
+        if (typeNode.asText().equals(MULTI_POLYGON_TYPE)) {
             int indexChildWithMaxSize = 0;
             int maxSize = 0;
             for(int i = 0; i < coordinatesNode.size(); i++) {
